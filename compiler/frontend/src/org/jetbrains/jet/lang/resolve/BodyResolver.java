@@ -100,6 +100,11 @@ public class BodyResolver {
         this.declarationsChecker = declarationsChecker;
     }
 
+    @NotNull
+    public DeclarationsChecker getDeclarationsChecker() {
+        return declarationsChecker;
+    }
+
     @Inject
     public void setAnnotationResolver(@NotNull AnnotationResolver annotationResolver) {
         this.annotationResolver = annotationResolver;

@@ -132,7 +132,8 @@ public class TopDownAnalyzer {
                     new GlobalContextImpl((LockBasedStorageManager) c.getStorageManager(), c.getExceptionTracker()), // TODO
                     (ModuleDescriptorImpl) moduleDescriptor, // TODO
                     new FileBasedDeclarationProviderFactory(c.getStorageManager(), getFiles(declarations)),
-                    trace
+                    trace,
+                    bodyResolver.getDeclarationsChecker().getAdditionalCheckerProvider()
             ).getResolveSession();
 
             lazyTopDownAnalyzer.analyzeDeclarations(
@@ -193,7 +194,8 @@ public class TopDownAnalyzer {
             @Nullable final WritableScope scope,
             @NotNull ExpressionTypingContext context,
             @NotNull final DeclarationDescriptor containingDeclaration,
-            @NotNull JetClassOrObject object
+            @NotNull JetClassOrObject object,
+            @NotNull AdditionalCheckerProvider additionalCheckerProvider
     ) {
         TopDownAnalysisParameters topDownAnalysisParameters =
                 TopDownAnalysisParameters.createForLocalDeclarations(
@@ -203,7 +205,11 @@ public class TopDownAnalyzer {
                 );
 
         InjectorForTopDownAnalyzerBasic injector = new InjectorForTopDownAnalyzerBasic(
-                object.getProject(), topDownAnalysisParameters, context.trace, DescriptorUtils.getContainingModule(containingDeclaration)
+                object.getProject(),
+                topDownAnalysisParameters,
+                context.trace,
+                DescriptorUtils.getContainingModule(containingDeclaration),
+                additionalCheckerProvider
         );
 
         TopDownAnalysisContext c = new TopDownAnalysisContext(topDownAnalysisParameters);

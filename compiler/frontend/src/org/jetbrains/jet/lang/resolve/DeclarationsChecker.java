@@ -44,6 +44,9 @@ public class DeclarationsChecker {
     @NotNull
     private DescriptorResolver descriptorResolver;
 
+    @NotNull
+    private AdditionalCheckerProvider additionalCheckerProvider;
+
     @Inject
     public void setTrace(@NotNull BindingTrace trace) {
         this.trace = trace;
@@ -53,6 +56,16 @@ public class DeclarationsChecker {
     @Inject
     public void setDescriptorResolver(@NotNull DescriptorResolver descriptorResolver) {
         this.descriptorResolver = descriptorResolver;
+    }
+
+    @Inject
+    public void setAdditionalCheckerProvider(@NotNull AdditionalCheckerProvider additionalCheckerProvider) {
+        this.additionalCheckerProvider = additionalCheckerProvider;
+    }
+
+    @NotNull
+    public AdditionalCheckerProvider getAdditionalCheckerProvider() {
+        return additionalCheckerProvider;
     }
 
     public void process(@NotNull BodiesResolveContext bodiesResolveContext) {
@@ -80,6 +93,7 @@ public class DeclarationsChecker {
             }
 
             modifiersChecker.checkModifiersForDeclaration(classOrObject, classDescriptor);
+            runAnnotationCheckers(classOrObject, classDescriptor);
         }
 
         Map<JetNamedFunction, SimpleFunctionDescriptor> functions = bodiesResolveContext.getFunctions();
@@ -90,6 +104,7 @@ public class DeclarationsChecker {
             if (!bodiesResolveContext.completeAnalysisNeeded(function)) continue;
             checkFunction(function, functionDescriptor);
             modifiersChecker.checkModifiersForDeclaration(function, functionDescriptor);
+            runAnnotationCheckers(function, functionDescriptor);
         }
 
         Map<JetProperty, PropertyDescriptor> properties = bodiesResolveContext.getProperties();
@@ -100,6 +115,7 @@ public class DeclarationsChecker {
             if (!bodiesResolveContext.completeAnalysisNeeded(property)) continue;
             checkProperty(property, propertyDescriptor);
             modifiersChecker.checkModifiersForDeclaration(property, propertyDescriptor);
+            runAnnotationCheckers(property, propertyDescriptor);
         }
 
     }
@@ -557,6 +573,13 @@ public class DeclarationsChecker {
                     }
                 }
             }
+        }
+    }
+
+    private void runAnnotationCheckers(@NotNull JetDeclaration declaration, @NotNull MemberDescriptor descriptor) {
+        List<AnnotationChecker> checkers = additionalCheckerProvider.getAnnotationCheckers();
+        for (AnnotationChecker checker : checkers) {
+            checker.check(declaration, descriptor, trace);
         }
     }
 }

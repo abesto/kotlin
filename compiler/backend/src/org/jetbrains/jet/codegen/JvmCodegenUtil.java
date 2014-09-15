@@ -31,16 +31,15 @@ import org.jetbrains.jet.codegen.context.PackageContext;
 import org.jetbrains.jet.codegen.state.JetTypeMapper;
 import org.jetbrains.jet.descriptors.serialization.descriptors.DeserializedCallableMemberDescriptor;
 import org.jetbrains.jet.lang.descriptors.*;
-import org.jetbrains.jet.lang.descriptors.annotations.AnnotationDescriptor;
 import org.jetbrains.jet.lang.psi.JetFile;
 import org.jetbrains.jet.lang.psi.codeFragmentUtil.CodeFragmentUtilPackage;
+import org.jetbrains.jet.lang.resolve.AnnotationUtil;
 import org.jetbrains.jet.lang.resolve.DescriptorToSourceUtils;
 import org.jetbrains.jet.lang.resolve.DescriptorUtils;
 import org.jetbrains.jet.lang.resolve.java.lazy.descriptors.LazyJavaPackageFragment;
 import org.jetbrains.jet.lang.resolve.kotlin.KotlinJvmBinaryClass;
 import org.jetbrains.jet.lang.resolve.kotlin.VirtualFileKotlinClass;
 import org.jetbrains.jet.lang.resolve.kotlin.incremental.IncrementalPackageFragmentProvider;
-import org.jetbrains.jet.lang.resolve.name.FqName;
 import org.jetbrains.jet.lang.types.JetType;
 
 import java.io.File;
@@ -242,20 +241,15 @@ public class JvmCodegenUtil {
 
     public static boolean isPlatformStaticInObject(CallableDescriptor descriptor) {
         if (DescriptorUtils.isObject(descriptor.getContainingDeclaration())) {
-            return hasPlatformStaticAnnotation(descriptor);
+            return AnnotationUtil.INSTANCE$.hasPlatformStaticAnnotation(descriptor);
         }
         return false;
     }
 
     public static boolean isPlatformStaticInClassObject(CallableDescriptor descriptor) {
         if (DescriptorUtils.isClassObject(descriptor.getContainingDeclaration())) {
-            return hasPlatformStaticAnnotation(descriptor);
+            return AnnotationUtil.INSTANCE$.hasPlatformStaticAnnotation(descriptor);
         }
         return false;
-    }
-
-    public static boolean hasPlatformStaticAnnotation(@NotNull CallableDescriptor descriptor) {
-        AnnotationDescriptor platformStaticAnnotation = descriptor.getAnnotations().findAnnotation(new FqName("kotlin.platform.platformStatic"));
-        return platformStaticAnnotation != null;
     }
 }
