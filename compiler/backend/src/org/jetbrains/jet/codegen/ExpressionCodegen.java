@@ -34,6 +34,7 @@ import org.jetbrains.jet.codegen.context.*;
 import org.jetbrains.jet.codegen.inline.InlineCodegen;
 import org.jetbrains.jet.codegen.inline.InlineCodegenUtil;
 import org.jetbrains.jet.codegen.inline.NameGenerator;
+import org.jetbrains.jet.codegen.intrinsics.Concat;
 import org.jetbrains.jet.codegen.intrinsics.IntrinsicMethod;
 import org.jetbrains.jet.codegen.state.GenerationState;
 import org.jetbrains.jet.codegen.state.JetTypeMapper;
@@ -225,6 +226,7 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
         return genQualified(receiver, selector, this);
     }
 
+    @NotNull
     private StackValue genQualified(StackValue receiver, JetElement selector, JetVisitor<StackValue, StackValue> visitor) {
         if (tempVariables.containsKey(selector)) {
             throw new IllegalStateException("Inconsistent state: expression saved to a temporary variable is a selector");
@@ -255,6 +257,7 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
         }
     }
 
+    @NotNull
     public StackValue gen(JetElement expr) {
         StackValue tempVar = tempVariables.get(expr);
         return tempVar != null ? tempVar : genQualified(StackValue.none(), expr);
@@ -2736,13 +2739,13 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
             ResolvedCall<?> resolvedCall = getResolvedCallWithAssert(expression, bindingContext);
             FunctionDescriptor descriptor = (FunctionDescriptor) resolvedCall.getResultingDescriptor();
 
-            Callable callable = resolveToCallable(descriptor, false);
-            if (callable instanceof IntrinsicMethod) {
-                Type returnType = typeMapper.mapType(descriptor);
-                ((IntrinsicMethod) callable).generate(this, v, returnType, expression,
-                                                      Arrays.asList(expression.getLeft(), expression.getRight()), receiver);
-                return StackValue.onStack(returnType);
-            }
+            //Callable callable = resolveToCallable(descriptor, false);
+            //if (callable instanceof IntrinsicMethod) {
+            //    Type returnType = typeMapper.mapType(descriptor);
+            //    ((IntrinsicMethod) callable).generate(this, v, returnType, expression,
+            //                                          Arrays.asList(expression.getLeft(), expression.getRight()), receiver);
+            //    return StackValue.onStack(returnType);
+            //}
 
             return invokeFunction(resolvedCall, receiver);
         }
@@ -2983,7 +2986,7 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
 
         boolean keepReturnValue;
         if (Boolean.TRUE.equals(bindingContext.get(VARIABLE_REASSIGNMENT, expression))) {
-            if (callable instanceof IntrinsicMethod) {
+            if (callable instanceof Concat) {
                 StackValue value = gen(lhs);              // receiver
                 value.dupReceiver(v);                     // receiver receiver
                 value.put(lhsType, v);                    // receiver lhs
@@ -2991,12 +2994,9 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
                                                       Collections.singletonList(expression.getRight()), StackValue.onStack(lhsType));
                 value.store(lhsType, v);
                 return StackValue.none();
+            }
 
-                //keepReturnValue = true;
-            }
-            else {
-                keepReturnValue = true;
-            }
+            keepReturnValue = true;
         }
         else {
             keepReturnValue = !KotlinBuiltIns.getInstance().getUnitType().equals(descriptor.getReturnType());

@@ -81,6 +81,7 @@ public class BinaryOp extends IntrinsicMethod {
         return true;
     }
 
+    @NotNull
     @Override
     public ExtendedCallable toCallable(GenerationState state, FunctionDescriptor fd, CodegenContext<?> context) {
         CallableMethod method = state.getTypeMapper().mapToCallableMethod(fd, false, context);

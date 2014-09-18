@@ -26,6 +26,8 @@ import org.jetbrains.jet.lang.resolve.calls.model.ResolvedCall
 import org.jetbrains.jet.codegen.ExtendedCallable
 import org.jetbrains.jet.lang.descriptors.FunctionDescriptor
 import org.jetbrains.jet.codegen.context.CodegenContext
+import org.jetbrains.jet.codegen.CallableMethod
+import org.jetbrains.jet.codegen.AsmUtil.isPrimitive
 
 public open class IntrinsicCallable(val returnType1: Type,
                                     val valueParametersTypes: List<Type>,
@@ -51,6 +53,17 @@ public open class IntrinsicCallable(val returnType1: Type,
                 }
             }
         }
+
+        fun create(descriptor: FunctionDescriptor, context: CodegenContext<*>, state: GenerationState, receiverTransformer: Type.() -> Type, lambda: IntrinsicCallable.(i: InstructionAdapter)->Unit) : IntrinsicCallable {
+            val callableMethod = state.getTypeMapper().mapToCallableMethod(descriptor, false, context)
+
+            return object : IntrinsicCallable(callableMethod.getReturnType(), callableMethod.getValueParameterTypes(), callableMethod.getThisType()?.receiverTransformer(), callableMethod.getReceiverClass()?.receiverTransformer()) {
+                override fun invokeIntrinsic(v: InstructionAdapter) {
+                    lambda(v)
+                }
+            }
+        }
+
     }
 
     override fun getValueParameterTypes(): List<Type> {
@@ -90,5 +103,35 @@ public open class IntrinsicCallable(val returnType1: Type,
 
     override fun getOwner(): Type {
         throw UnsupportedOperationException()
+    }
+
+    public fun calcReceiverType(): Type? {
+        return getReceiverClass() ?: getThisType()
+    }
+}
+
+
+public class UnaryIntrinsic(val callable: CallableMethod, val newReturnType: Type? = null, needPrimitiveCheck: Boolean = false, val invoke: UnaryIntrinsic.(v: InstructionAdapter) -> Unit) :
+        IntrinsicCallable(newReturnType ?: callable.getReturnType(), callable.getValueParameterTypes(), callable.getThisType(), callable.getReceiverClass()) {
+
+    {
+        if(needPrimitiveCheck) {
+            assert(isPrimitive(getReturnType())) { "Return type of UnaryPlus intrinsic should be of primitive type : " + getReturnType() }
+        }
+        assert(getValueParameterTypes().size == 0, "Unary operation should not have any parameters")
+    }
+
+    override fun invokeIntrinsic(v: InstructionAdapter) {
+        invoke(v)
+    }
+
+}
+
+public open class MappedCallable(val callable: CallableMethod, val invoke: MappedCallable.(v: InstructionAdapter) -> Unit) :
+        IntrinsicCallable(callable.getReturnType(), callable.getValueParameterTypes(), callable.getThisType(), callable.getReceiverClass()) {
+
+
+    override fun invokeIntrinsic(v: InstructionAdapter) {
+        invoke(v)
     }
 }

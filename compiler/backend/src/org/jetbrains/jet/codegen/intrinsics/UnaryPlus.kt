@@ -17,9 +17,7 @@
 package org.jetbrains.jet.codegen.intrinsics
 
 import com.intellij.psi.PsiElement
-import jet.runtime.typeinfo.JetValueParameter
-import kotlin.ExtensionFunction1
-import kotlin.Unit
+import org.jetbrains.jet.codegen.CallableMethod
 import org.jetbrains.jet.codegen.ExtendedCallable
 import org.jetbrains.jet.codegen.context.CodegenContext
 import org.jetbrains.jet.codegen.state.GenerationState
@@ -28,46 +26,32 @@ import org.jetbrains.org.objectweb.asm.Type
 import org.jetbrains.org.objectweb.asm.commons.InstructionAdapter
 import org.jetbrains.jet.codegen.ExpressionCodegen
 import org.jetbrains.jet.codegen.StackValue
-import org.jetbrains.jet.lang.psi.JetCallExpression
 import org.jetbrains.jet.lang.psi.JetExpression
-import org.jetbrains.jet.lexer.JetTokens
 
-import org.jetbrains.jet.codegen.AsmUtil.genEqualsForExpressionsOnStack
-import org.jetbrains.jet.lang.resolve.java.AsmTypeConstants.OBJECT_TYPE
-import org.jetbrains.jet.lang.descriptors.DeclarationDescriptor
+import org.jetbrains.jet.codegen.AsmUtil.isPrimitive
 
-public class Equals : IntrinsicMethod() {
+public class UnaryPlus : IntrinsicMethod() {
     override fun generateImpl(codegen: ExpressionCodegen, v: InstructionAdapter, returnType: Type, element: PsiElement?, arguments: List<JetExpression>?, receiver: StackValue?): Type {
-        val leftExpr: StackValue
-        val rightExpr: JetExpression
+        assert(isPrimitive(returnType)) { "Return type of UnaryPlus intrinsic should be of primitive type : " + returnType }
+
         if (receiver != null && receiver != StackValue.none()) {
-            leftExpr = receiver
-            rightExpr = arguments!!.get(0)
+            receiver.put(returnType, v)
         }
         else {
-            leftExpr = codegen.gen(arguments!!.get(0))
-            rightExpr = arguments.get(1)
+            assert(arguments != null)
+            codegen.gen(arguments!!.get(0), returnType)
         }
-
-        leftExpr.put(OBJECT_TYPE, v)
-        codegen.gen(rightExpr).put(OBJECT_TYPE, v)
-
-        genEqualsForExpressionsOnStack(v, JetTokens.EQEQ, OBJECT_TYPE, OBJECT_TYPE).put(returnType, v)
         return returnType
     }
 
-
-    override fun toCallable(state: GenerationState, fd: FunctionDescriptor, context: CodegenContext<out DeclarationDescriptor?>): ExtendedCallable {
-        fun nullOrObject(t: Type?): Type? {
-            return if (t == null) null else OBJECT_TYPE
-        }
-
-        val callableMethod = state.getTypeMapper().mapToCallableMethod(fd, false, context)
-        return IntrinsicCallable.binaryIntrinsic(callableMethod.getReturnType(), OBJECT_TYPE, nullOrObject(callableMethod.getThisType()), nullOrObject(callableMethod.getReceiverClass())) {
-            genEqualsForExpressionsOnStack(it, JetTokens.EQEQ, OBJECT_TYPE, OBJECT_TYPE).put(getReturnType(), it)
-        }
-    }
     override fun supportCallable(): Boolean {
         return true
+    }
+
+    override fun toCallable(state: GenerationState, fd: FunctionDescriptor, context: CodegenContext<*>): ExtendedCallable {
+        val method = state.getTypeMapper().mapToCallableMethod(fd, false, context)
+        return UnaryIntrinsic(method, needPrimitiveCheck = true) {
+            //nothing
+        }
     }
 }

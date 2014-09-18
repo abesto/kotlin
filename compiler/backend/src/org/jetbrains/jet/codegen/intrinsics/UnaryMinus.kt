@@ -17,40 +17,39 @@
 package org.jetbrains.jet.codegen.intrinsics
 
 import com.intellij.psi.PsiElement
+import org.jetbrains.org.objectweb.asm.Type
+import org.jetbrains.org.objectweb.asm.commons.InstructionAdapter
 import org.jetbrains.jet.codegen.ExpressionCodegen
 import org.jetbrains.jet.codegen.StackValue
 import org.jetbrains.jet.lang.psi.JetExpression
-import org.jetbrains.org.objectweb.asm.Type
-import org.jetbrains.org.objectweb.asm.commons.InstructionAdapter
 
-import org.jetbrains.jet.lang.resolve.java.AsmTypeConstants.JAVA_STRING_TYPE
-import org.jetbrains.jet.lang.resolve.java.AsmTypeConstants.OBJECT_TYPE
+import org.jetbrains.jet.codegen.AsmUtil.*
 import org.jetbrains.jet.codegen.state.GenerationState
 import org.jetbrains.jet.lang.descriptors.FunctionDescriptor
 import org.jetbrains.jet.lang.descriptors.DeclarationDescriptor
 import org.jetbrains.jet.codegen.context.CodegenContext
 import org.jetbrains.jet.codegen.ExtendedCallable
-import org.jetbrains.jet.codegen.AsmUtil.genEqualsForExpressionsOnStack
-import org.jetbrains.jet.lexer.JetTokens
 
-public class StringPlus : IntrinsicMethod() {
+public class UnaryMinus : IntrinsicMethod() {
     override fun generateImpl(codegen: ExpressionCodegen, v: InstructionAdapter, returnType: Type, element: PsiElement?, arguments: List<JetExpression>?, receiver: StackValue?): Type {
-        if (receiver == null || receiver == StackValue.none()) {
-            codegen.gen(arguments!!.get(0)).put(JAVA_STRING_TYPE, v)
-            codegen.gen(arguments.get(1)).put(OBJECT_TYPE, v)
+        assert(isPrimitive(returnType)) { "Return type of UnaryMinus intrinsic should be of primitive type: " + returnType }
+
+        val operandType = numberFunctionOperandType(returnType)
+
+        if (arguments!!.size() == 1) {
+            codegen.gen(arguments.get(0), operandType)
         }
         else {
-            receiver.put(JAVA_STRING_TYPE, v)
-            codegen.gen(arguments!!.get(0)).put(OBJECT_TYPE, v)
+            receiver!!.put(operandType, v)
         }
-        v.invokestatic("kotlin/jvm/internal/Intrinsics", "stringPlus", "(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;", false)
-        return JAVA_STRING_TYPE
+        return genNegate(returnType, v)
     }
 
 
     override fun toCallable(state: GenerationState, fd: FunctionDescriptor, context: CodegenContext<out DeclarationDescriptor?>): ExtendedCallable {
-        return IntrinsicCallable.create(fd, context, state) {
-            it.invokestatic("kotlin/jvm/internal/Intrinsics", "stringPlus", "(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;", false)
+        val method = state.getTypeMapper().mapToCallableMethod(fd, false, context)
+        return UnaryIntrinsic(method, numberFunctionOperandType(method.getReturnType()), needPrimitiveCheck = true) {
+            genNegate(getReturnType(), it)
         }
     }
     override fun supportCallable(): Boolean {

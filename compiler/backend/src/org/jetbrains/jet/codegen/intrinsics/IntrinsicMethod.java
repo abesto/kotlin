@@ -63,6 +63,7 @@ public abstract class IntrinsicMethod implements Callable {
         return false;
     }
 
+    @NotNull
     public ExtendedCallable toCallable(@NotNull GenerationState state, @NotNull FunctionDescriptor fd, @NotNull CodegenContext<?> context) {
         throw new UnsupportedOperationException("Not implemented");
     }

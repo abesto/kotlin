@@ -299,18 +299,22 @@ public abstract class StackValue {
         v.mark(end);
     }
 
+    @NotNull
     public static StackValue none() {
         return None.INSTANCE;
     }
 
+    @NotNull
     public static StackValue fieldForSharedVar(Type localType, Type classType, String fieldName) {
         return new FieldForSharedVar(localType, classType, fieldName);
     }
 
+    @NotNull
     public static StackValue composed(StackValue prefix, StackValue suffix) {
         return new Composed(prefix, suffix);
     }
 
+    @NotNull
     public static StackValue thisOrOuter(ExpressionCodegen codegen, ClassDescriptor descriptor, boolean isSuper, boolean isExplicit) {
         // Coerce this/super for traits to support traits with required classes.
         // Coerce explicit 'this' for the case when it is smartcasted.

@@ -404,9 +404,12 @@ public class AsmUtil {
         v.invokevirtual("java/lang/StringBuilder", "append", "(" + type.getDescriptor() + ")Ljava/lang/StringBuilder;", false);
     }
 
-    public static StackValue genToString(InstructionAdapter v, StackValue receiver, Type receiverType) {
+    @NotNull
+    public static StackValue genToString(@NotNull InstructionAdapter v, @Nullable StackValue receiver, @NotNull Type receiverType) {
         Type type = stringValueOfType(receiverType);
-        receiver.put(type, v);
+        if (receiver != null) {
+            receiver.put(type, v);
+        }
         v.invokestatic("java/lang/String", "valueOf", "(" + type.getDescriptor() + ")Ljava/lang/String;", false);
         return StackValue.onStack(JAVA_STRING_TYPE);
     }
@@ -505,10 +508,9 @@ public class AsmUtil {
         v.add(expectedType);
     }
 
-    public static Type genNegate(Type expectedType, InstructionAdapter v) {
-        if (expectedType == Type.BYTE_TYPE || expectedType == Type.SHORT_TYPE || expectedType == Type.CHAR_TYPE) {
-            expectedType = Type.INT_TYPE;
-        }
+    @NotNull
+    public static Type genNegate(@NotNull Type expectedType, @NotNull InstructionAdapter v) {
+        expectedType = numberFunctionOperandType(expectedType);
         v.neg(expectedType);
         return expectedType;
     }
@@ -697,7 +699,7 @@ public class AsmUtil {
 
     @NotNull
     public static Type numberFunctionOperandType(@NotNull Type expectedType) {
-        if (expectedType == Type.SHORT_TYPE || expectedType == Type.BYTE_TYPE) {
+        if (expectedType == Type.SHORT_TYPE || expectedType == Type.BYTE_TYPE || expectedType == Type.CHAR_TYPE) {
             return Type.INT_TYPE;
         }
         return expectedType;
