@@ -24,8 +24,34 @@ import org.jetbrains.jet.codegen.state.GenerationState
 import org.jetbrains.jet.lang.descriptors.CallableDescriptor
 import org.jetbrains.jet.lang.resolve.calls.model.ResolvedCall
 import org.jetbrains.jet.codegen.ExtendedCallable
+import org.jetbrains.jet.lang.descriptors.FunctionDescriptor
+import org.jetbrains.jet.codegen.context.CodegenContext
 
-public open class IntrinsicCallable(val method: IntrinsicMethod, val returnType1: Type, val valueParametersTypes: List<Type>, val thisType1: Type) : ExtendedCallable {
+public open class IntrinsicCallable(val returnType1: Type,
+                                    val valueParametersTypes: List<Type>,
+                                    val thisType1: Type?,
+                                    val receiverType1: Type?) : ExtendedCallable {
+
+    class object {
+        fun create(descriptor: FunctionDescriptor, context: CodegenContext<*>, state: GenerationState, lambda: IntrinsicCallable.(i: InstructionAdapter)->Unit) : IntrinsicCallable {
+            val callableMethod = state.getTypeMapper().mapToCallableMethod(descriptor, false, context)
+
+            return object : IntrinsicCallable(callableMethod.getReturnType(), callableMethod.getValueParameterTypes(), callableMethod.getThisType(), callableMethod.getReceiverClass()) {
+                override fun invokeIntrinsic(v: InstructionAdapter) {
+                    lambda(v)
+                }
+            }
+        }
+
+        fun binaryIntrinsic(returnType: Type, valueParameterType: Type, thisType: Type? = null, receiverType: Type? = null, lambda: IntrinsicCallable.(i: InstructionAdapter)->Unit) : IntrinsicCallable {
+
+            return object : IntrinsicCallable(returnType, listOf(valueParameterType), thisType, receiverType) {
+                override fun invokeIntrinsic(v: InstructionAdapter) {
+                    lambda(v)
+                }
+            }
+        }
+    }
 
     override fun getValueParameterTypes(): List<Type> {
         return valueParametersTypes
@@ -59,7 +85,7 @@ public open class IntrinsicCallable(val method: IntrinsicMethod, val returnType1
         return thisType1
     }
     override fun getReceiverClass(): Type? {
-        throw UnsupportedOperationException()
+        return receiverType1
     }
 
     override fun getOwner(): Type {

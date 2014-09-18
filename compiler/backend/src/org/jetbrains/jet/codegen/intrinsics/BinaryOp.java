@@ -90,7 +90,7 @@ public class BinaryOp extends IntrinsicMethod {
         Type operandType = numberFunctionOperandType(returnType);
         Type paramType = shift() ? Type.INT_TYPE : operandType;
 
-        return new IntrinsicCallable(this, operandType, Lists.asList(paramType, new Type[0]), operandType) {
+        return new IntrinsicCallable(operandType, Lists.asList(paramType, new Type[0]), operandType, null) {
             @Override
             public void invokeIntrinsic(
                     @NotNull InstructionAdapter v

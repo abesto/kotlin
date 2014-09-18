@@ -460,6 +460,7 @@ public class AsmUtil {
         v.xor(Type.INT_TYPE);
     }
 
+    @NotNull
     public static StackValue genEqualsForExpressionsOnStack(
             InstructionAdapter v,
             IElementType opToken,
