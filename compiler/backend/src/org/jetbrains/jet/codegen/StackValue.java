@@ -331,10 +331,11 @@ public abstract class StackValue {
         return new PreIncrement(index, increment);
     }
 
+    @NotNull
     public static StackValue receiver(
-            ResolvedCall<?> resolvedCall,
+            @NotNull ResolvedCall<?> resolvedCall,
             StackValue receiver,
-            ExpressionCodegen codegen,
+            @NotNull ExpressionCodegen codegen,
             @Nullable ExtendedCallable callableMethod
     ) {
         if (resolvedCall.getThisObject().exists() || resolvedCall.getReceiverArgument().exists() || isLocalFunCall(callableMethod)) {

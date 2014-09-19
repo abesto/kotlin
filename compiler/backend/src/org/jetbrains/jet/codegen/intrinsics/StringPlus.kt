@@ -32,6 +32,7 @@ import org.jetbrains.jet.codegen.context.CodegenContext
 import org.jetbrains.jet.codegen.ExtendedCallable
 import org.jetbrains.jet.codegen.AsmUtil.genEqualsForExpressionsOnStack
 import org.jetbrains.jet.lexer.JetTokens
+import org.jetbrains.jet.codegen.CallableMethod
 
 public class StringPlus : IntrinsicMethod() {
     override fun generateImpl(codegen: ExpressionCodegen, v: InstructionAdapter, returnType: Type, element: PsiElement?, arguments: List<JetExpression>?, receiver: StackValue?): Type {
@@ -47,12 +48,12 @@ public class StringPlus : IntrinsicMethod() {
         return JAVA_STRING_TYPE
     }
 
-
-    override fun toCallable(state: GenerationState, fd: FunctionDescriptor, context: CodegenContext<out DeclarationDescriptor?>): ExtendedCallable {
-        return IntrinsicCallable.create(fd, context, state) {
+    override fun toCallable(method: CallableMethod): ExtendedCallable {
+        return IntrinsicCallable.create(method) {
             it.invokestatic("kotlin/jvm/internal/Intrinsics", "stringPlus", "(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;", false)
         }
     }
+
     override fun supportCallable(): Boolean {
         return true
     }

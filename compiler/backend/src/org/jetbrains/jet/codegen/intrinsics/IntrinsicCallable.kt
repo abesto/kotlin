@@ -35,14 +35,9 @@ public open class IntrinsicCallable(val returnType1: Type,
                                     val receiverType1: Type?) : ExtendedCallable {
 
     class object {
-        fun create(descriptor: FunctionDescriptor, context: CodegenContext<*>, state: GenerationState, lambda: IntrinsicCallable.(i: InstructionAdapter)->Unit) : IntrinsicCallable {
+        fun create(descriptor: FunctionDescriptor, context: CodegenContext<*>, state: GenerationState, invoke: IntrinsicCallable.(i: InstructionAdapter)->Unit) : IntrinsicCallable {
             val callableMethod = state.getTypeMapper().mapToCallableMethod(descriptor, false, context)
-
-            return object : IntrinsicCallable(callableMethod.getReturnType(), callableMethod.getValueParameterTypes(), callableMethod.getThisType(), callableMethod.getReceiverClass()) {
-                override fun invokeIntrinsic(v: InstructionAdapter) {
-                    lambda(v)
-                }
-            }
+            return create(callableMethod, lambda = invoke)
         }
 
         fun binaryIntrinsic(returnType: Type, valueParameterType: Type, thisType: Type? = null, receiverType: Type? = null, lambda: IntrinsicCallable.(i: InstructionAdapter)->Unit) : IntrinsicCallable {
@@ -54,9 +49,7 @@ public open class IntrinsicCallable(val returnType1: Type,
             }
         }
 
-        fun create(descriptor: FunctionDescriptor, context: CodegenContext<*>, state: GenerationState, receiverTransformer: Type.() -> Type, lambda: IntrinsicCallable.(i: InstructionAdapter)->Unit) : IntrinsicCallable {
-            val callableMethod = state.getTypeMapper().mapToCallableMethod(descriptor, false, context)
-
+        fun create(callableMethod: CallableMethod, receiverTransformer: Type.() -> Type = {this}, lambda: IntrinsicCallable.(i: InstructionAdapter)->Unit) : IntrinsicCallable {
             return object : IntrinsicCallable(callableMethod.getReturnType(), callableMethod.getValueParameterTypes(), callableMethod.getThisType()?.receiverTransformer(), callableMethod.getReceiverClass()?.receiverTransformer()) {
                 override fun invokeIntrinsic(v: InstructionAdapter) {
                     lambda(v)
@@ -124,7 +117,6 @@ public class UnaryIntrinsic(val callable: CallableMethod, val newReturnType: Typ
     override fun invokeIntrinsic(v: InstructionAdapter) {
         invoke(v)
     }
-
 }
 
 public open class MappedCallable(val callable: CallableMethod, val invoke: MappedCallable.(v: InstructionAdapter) -> Unit) :
