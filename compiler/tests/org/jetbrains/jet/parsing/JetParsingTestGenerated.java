@@ -17,13 +17,10 @@
 package org.jetbrains.jet.parsing;
 
 import com.intellij.testFramework.TestDataPath;
-import junit.framework.Test;
-import junit.framework.TestSuite;
-import org.junit.runner.RunWith;
 import org.jetbrains.jet.JetTestUtils;
 import org.jetbrains.jet.test.InnerTestClasses;
 import org.jetbrains.jet.test.TestMetadata;
-import org.jetbrains.jet.JUnit3RunnerWithInners;
+import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.util.regex.Pattern;
@@ -117,6 +114,12 @@ public class JetParsingTestGenerated extends AbstractJetParsingTest {
         @TestMetadata("CallsInWhen.kt")
         public void testCallsInWhen() throws Exception {
             String fileName = JetTestUtils.navigationMetadata("compiler/testData/psi/CallsInWhen.kt");
+            doParsingTest(fileName);
+        }
+        
+        @TestMetadata("CommentsBinding.kt")
+        public void testCommentsBinding() throws Exception {
+            String fileName = JetTestUtils.navigationMetadata("compiler/testData/psi/CommentsBinding.kt");
             doParsingTest(fileName);
         }
         
