@@ -3,9 +3,7 @@ package foo
 // we use package 'foo'
 
 // imports:
-import java.util.ArrayList
-
-// we need ArrayList
+import java.util.ArrayList // we need ArrayList
 
 // let's declare a class:
 class A /* just a sample name*/ : Runnable /* let's implement Runnable */ {
