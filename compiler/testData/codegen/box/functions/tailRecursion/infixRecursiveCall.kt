@@ -1,4 +1,5 @@
 // !DIAGNOSTICS: -UNUSED_PARAMETER
+
 tailRecursive fun Int.foo(x: Int) {
     if (x == 0) return
     val xx = x - 1
