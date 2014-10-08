@@ -60,7 +60,10 @@ public interface DescriptorRenderer extends Renderer<DeclarationDescriptor> {
 
     DescriptorRenderer SHORT_NAMES_IN_TYPES = new DescriptorRendererBuilder().setShortNames(true).setIncludeSynthesizedParameterNames(false).build();
 
-    DescriptorRenderer DEBUG_TEXT = new DescriptorRendererBuilder().setDebugMode(true).build();
+    DescriptorRenderer DEBUG_TEXT = new DescriptorRendererBuilder()
+            .setModifiers(DescriptorRenderer.Modifier.values())
+            .setDebugMode(true)
+            .build();
 
     DescriptorRenderer HTML_COMPACT_WITH_MODIFIERS = new DescriptorRendererBuilder()
             .setWithDefinedIn(false)

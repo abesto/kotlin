@@ -56,6 +56,7 @@ private val DECOMPILED_COMMENT = "/* compiled code */"
 public val descriptorRendererForDecompiler: DescriptorRenderer = DescriptorRendererBuilder()
         .setWithDefinedIn(false)
         .setClassWithPrimaryConstructor(true)
+        .setModifiers(DescriptorRenderer.Modifier.values().toSet())
         .build()
 
 //TODO: should use more accurate way to identify descriptors

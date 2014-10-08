@@ -39,6 +39,7 @@ public class IdeDescriptorRenderers {
 
     public static final DescriptorRenderer SOURCE_CODE = commonBuilder()
             .setShortNames(false)
+            .setModifiers(DescriptorRenderer.Modifier.values())
             .setTypeNormalizer(APPROXIMATE_FLEXIBLE_TYPES)
             .build();
 

@@ -17,13 +17,10 @@
 package org.jetbrains.jet.completion;
 
 import com.intellij.testFramework.TestDataPath;
-import junit.framework.Test;
-import junit.framework.TestSuite;
-import org.junit.runner.RunWith;
 import org.jetbrains.jet.JetTestUtils;
 import org.jetbrains.jet.test.InnerTestClasses;
 import org.jetbrains.jet.test.TestMetadata;
-import org.jetbrains.jet.JUnit3RunnerWithInners;
+import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.util.regex.Pattern;
@@ -531,6 +528,12 @@ public class JSBasicCompletionTestGenerated extends AbstractJSBasicCompletionTes
         @TestMetadata("NoObjectInTypePosition.kt")
         public void testNoObjectInTypePosition() throws Exception {
             String fileName = JetTestUtils.navigationMetadata("idea/testData/completion/basic/common/NoObjectInTypePosition.kt");
+            doTest(fileName);
+        }
+        
+        @TestMetadata("NoParameterAnnotationInPresentation.kt")
+        public void testNoParameterAnnotationInPresentation() throws Exception {
+            String fileName = JetTestUtils.navigationMetadata("idea/testData/completion/basic/common/NoParameterAnnotationInPresentation.kt");
             doTest(fileName);
         }
         
