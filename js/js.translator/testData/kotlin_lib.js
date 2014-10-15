@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-(function () {
+(function (Kotlin) {
     "use strict";
 
     // Shims for String
@@ -993,4 +993,4 @@
     };
 
     Kotlin.createDefinition(lazyInitClasses, Kotlin);
-})();
+})(Kotlin);
