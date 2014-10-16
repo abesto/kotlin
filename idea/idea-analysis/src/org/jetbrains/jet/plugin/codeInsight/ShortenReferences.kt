@@ -39,6 +39,15 @@ import java.util.Collections
 import org.jetbrains.jet.analyzer.analyzeInContext
 import org.jetbrains.jet.lang.resolve.calls.callUtil.getCalleeExpressionIfAny
 import java.util.LinkedHashSet
+import com.intellij.psi.search.SearchScope
+import org.jetbrains.jet.plugin.search.usagesSearch.DefaultSearchHelper
+import org.jetbrains.jet.plugin.search.usagesSearch.UsagesSearchTarget
+import com.intellij.psi.PsiNamedElement
+import org.jetbrains.jet.plugin.search.usagesSearch.search
+import org.jetbrains.jet.lang.psi.psiUtil.parents
+import com.intellij.openapi.project.Project
+import org.jetbrains.jet.lang.psi.psiUtil.getQualifiedElement
+import org.jetbrains.jet.lang.types.JetType
 
 public object ShortenReferences {
     public fun process(element: JetElement) {
@@ -95,21 +104,50 @@ public object ShortenReferences {
         }
     }
 
+    fun processAllReferencesInFile(descriptors: List<DeclarationDescriptor>, file: JetFile) {
+        val renderedDescriptors = descriptors.map { it.asString() }
+        val referenceToContext = resolveReferencesInFile(file).filter { e ->
+            val (ref, context) = e
+            val renderedTargets = ref.getTargets(context).map { it.asString() }
+            ref is JetSimpleNameExpression && renderedDescriptors.any { it in renderedTargets }
+        }
+        shortenReferencesInFile(
+                file,
+                referenceToContext.keySet().map { (it as JetSimpleNameExpression).getQualifiedElement() },
+                referenceToContext,
+                { FilterResult.PROCESS }
+        )
+    }
+
     private enum class FilterResult {
         SKIP
         GO_INSIDE
         PROCESS
     }
 
+    private fun resolveReferencesInFile(
+            file: JetFile,
+            fileElements: List<JetElement> = Collections.singletonList(file)
+    ): Map<JetReferenceExpression, BindingContext> {
+        ImportInsertHelper.getInstance().optimizeImportsOnTheFly(file)
+        return JetFileReferencesResolver.resolve(file, fileElements, resolveShortNames = false)
+    }
+
+    private fun shortenReferencesInFile(
+            file: JetFile,
+            elements: List<JetElement>,
+            referenceToContext: Map<JetReferenceExpression, BindingContext>,
+            elementFilter: (PsiElement) -> FilterResult
+    ) {
+        processElements(elements, ShortenTypesVisitor(file, elementFilter, referenceToContext))
+        processElements(elements, ShortenQualifiedExpressionsVisitor(file, elementFilter, referenceToContext))
+    }
+
     private fun process(elements: Iterable<JetElement>, elementFilter: (PsiElement) -> FilterResult) {
         for ((file, fileElements) in elements.groupBy { element -> element.getContainingJetFile() }) {
-            ImportInsertHelper.getInstance().optimizeImportsOnTheFly(file)
-
             // first resolve all qualified references - optimization
-            val referenceToContext = JetFileReferencesResolver.resolve(file, fileElements, resolveShortNames = false)
-
-            processElements(fileElements, ShortenTypesVisitor(file, elementFilter, referenceToContext))
-            processElements(fileElements, ShortenQualifiedExpressionsVisitor(file, elementFilter, referenceToContext))
+            val referenceToContext = resolveReferencesInFile(file, fileElements)
+            shortenReferencesInFile(file, fileElements, referenceToContext, elementFilter)
         }
     }
 
@@ -208,16 +246,6 @@ public object ShortenReferences {
             elementFilter: (PsiElement) -> FilterResult,
             resolveMap: Map<JetReferenceExpression, BindingContext>
     ) : ShorteningVisitor<JetQualifiedExpression>(file, elementFilter, resolveMap) {
-        private fun adjustDescriptor(it: DeclarationDescriptor): DeclarationDescriptor {
-            return (it as? ConstructorDescriptor)?.getContainingDeclaration() ?: it
-        }
-
-        private fun JetReferenceExpression.getTargets(context: BindingContext): Collection<DeclarationDescriptor> {
-            return context[BindingContext.REFERENCE_TARGET, this]?.let { Collections.singletonList(adjustDescriptor(it)) }
-                   ?: context[BindingContext.AMBIGUOUS_REFERENCE_TARGET, this]?.mapTo(HashSet<DeclarationDescriptor>()) { adjustDescriptor(it) }
-                   ?: Collections.emptyList()
-        }
-
         private fun canShorten(qualifiedExpression: JetDotQualifiedExpression): Boolean {
             val context = bindingContext(qualifiedExpression)
 
@@ -272,6 +300,15 @@ public object ShortenReferences {
 
     private fun DeclarationDescriptor.asString()
             = DescriptorRenderer.FQ_NAMES_IN_TYPES.render(this)
+
+    private fun JetReferenceExpression.getTargets(context: BindingContext): Collection<DeclarationDescriptor> {
+        fun adjustDescriptor(it: DeclarationDescriptor): DeclarationDescriptor =
+                (it as? ConstructorDescriptor)?.getContainingDeclaration() ?: it
+
+        return context[BindingContext.REFERENCE_TARGET, this]?.let { Collections.singletonList(adjustDescriptor(it)) }
+               ?: context[BindingContext.AMBIGUOUS_REFERENCE_TARGET, this]?.mapTo(HashSet<DeclarationDescriptor>()) { adjustDescriptor(it) }
+               ?: Collections.emptyList()
+    }
 
     private fun addImport(descriptor: DeclarationDescriptor, file: JetFile) {
         ImportInsertHelper.getInstance().writeImportToFile(ImportPath(DescriptorUtils.getFqNameSafe(descriptor), false), file)

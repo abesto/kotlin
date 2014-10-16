@@ -450,6 +450,12 @@ public class QuickFixTestGenerated extends AbstractQuickFixTest {
             doTest(fileName);
         }
         
+        @TestMetadata("beforeAddFunctionParameterLongNameRuntime.kt")
+        public void testAddFunctionParameterLongNameRuntime() throws Exception {
+            String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/changeSignature/beforeAddFunctionParameterLongNameRuntime.kt");
+            doTest(fileName);
+        }
+        
         @TestMetadata("beforeAddParameterNotAvailableForBuiltins.kt")
         public void testAddParameterNotAvailableForBuiltins() throws Exception {
             String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/changeSignature/beforeAddParameterNotAvailableForBuiltins.kt");
@@ -3237,6 +3243,12 @@ public class QuickFixTestGenerated extends AbstractQuickFixTest {
             doTest(fileName);
         }
         
+        @TestMetadata("beforeWrongGetterParameterTypeLongNameRuntime.kt")
+        public void testWrongGetterParameterTypeLongNameRuntime() throws Exception {
+            String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeAddition/beforeWrongGetterParameterTypeLongNameRuntime.kt");
+            doTest(fileName);
+        }
+        
         @TestMetadata("beforeWrongSetterParameterType.kt")
         public void testWrongSetterParameterType() throws Exception {
             String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeAddition/beforeWrongSetterParameterType.kt");
@@ -3300,9 +3312,21 @@ public class QuickFixTestGenerated extends AbstractQuickFixTest {
             doTest(fileName);
         }
         
+        @TestMetadata("beforeChangeFunctionLiteralParameterTypeToFunctionTypeLongNameRuntime.kt")
+        public void testChangeFunctionLiteralParameterTypeToFunctionTypeLongNameRuntime() throws Exception {
+            String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/beforeChangeFunctionLiteralParameterTypeToFunctionTypeLongNameRuntime.kt");
+            doTest(fileName);
+        }
+        
         @TestMetadata("beforeChangeFunctionReturnTypeToMatchExpectedTypeOfCall.kt")
         public void testChangeFunctionReturnTypeToMatchExpectedTypeOfCall() throws Exception {
             String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/beforeChangeFunctionReturnTypeToMatchExpectedTypeOfCall.kt");
+            doTest(fileName);
+        }
+        
+        @TestMetadata("beforeChangeFunctionReturnTypeToMatchExpectedTypeOfCallLongNameRuntime.kt")
+        public void testChangeFunctionReturnTypeToMatchExpectedTypeOfCallLongNameRuntime() throws Exception {
+            String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/beforeChangeFunctionReturnTypeToMatchExpectedTypeOfCallLongNameRuntime.kt");
             doTest(fileName);
         }
         
@@ -3336,6 +3360,12 @@ public class QuickFixTestGenerated extends AbstractQuickFixTest {
             doTest(fileName);
         }
         
+        @TestMetadata("beforeExpectedParameterTypeMismatchLongNameRuntime.kt")
+        public void testExpectedParameterTypeMismatchLongNameRuntime() throws Exception {
+            String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/beforeExpectedParameterTypeMismatchLongNameRuntime.kt");
+            doTest(fileName);
+        }
+        
         @TestMetadata("beforeExpectedReturnTypeMismatch.kt")
         public void testExpectedReturnTypeMismatch() throws Exception {
             String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/beforeExpectedReturnTypeMismatch.kt");
@@ -3357,6 +3387,12 @@ public class QuickFixTestGenerated extends AbstractQuickFixTest {
         @TestMetadata("beforePropertyTypeMismatch.kt")
         public void testPropertyTypeMismatch() throws Exception {
             String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/beforePropertyTypeMismatch.kt");
+            doTest(fileName);
+        }
+        
+        @TestMetadata("beforePropertyTypeMismatchLongNameRuntime.kt")
+        public void testPropertyTypeMismatchLongNameRuntime() throws Exception {
+            String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/beforePropertyTypeMismatchLongNameRuntime.kt");
             doTest(fileName);
         }
         
@@ -3431,6 +3467,12 @@ public class QuickFixTestGenerated extends AbstractQuickFixTest {
             @TestMetadata("beforeTypeMismatch5.kt")
             public void testTypeMismatch5() throws Exception {
                 String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/casts/beforeTypeMismatch5.kt");
+                doTest(fileName);
+            }
+            
+            @TestMetadata("beforeTypeMismatchLongNameRuntime.kt")
+            public void testTypeMismatchLongNameRuntime() throws Exception {
+                String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/casts/beforeTypeMismatchLongNameRuntime.kt");
                 doTest(fileName);
             }
             
@@ -3539,6 +3581,12 @@ public class QuickFixTestGenerated extends AbstractQuickFixTest {
             @TestMetadata("beforeChangeFunctionParameterType5.kt")
             public void testChangeFunctionParameterType5() throws Exception {
                 String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/parameterTypeMismatch/beforeChangeFunctionParameterType5.kt");
+                doTest(fileName);
+            }
+            
+            @TestMetadata("beforeChangeParameterTypeLongNameRuntime.kt")
+            public void testChangeParameterTypeLongNameRuntime() throws Exception {
+                String fileName = JetTestUtils.navigationMetadata("idea/testData/quickfix/typeMismatch/parameterTypeMismatch/beforeChangeParameterTypeLongNameRuntime.kt");
                 doTest(fileName);
             }
             
