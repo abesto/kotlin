@@ -41,6 +41,7 @@ import org.jetbrains.jet.lang.resolve.java.lazy.SingleModuleClassResolver
 import org.jetbrains.jet.lang.resolve.kotlin.VirtualFileFinderFactory
 import org.jetbrains.jet.lang.resolve.java.TopDownAnalyzerFacadeForJVM
 import org.jetbrains.jet.lang.resolve.kotlin.JavaDeclarationCheckerProvider
+import org.jetbrains.jet.lang.resolve.java.JavaFlexibleTypeCapabilitiesProvider
 
 // NOTE: After making changes, you need to re-generate the injectors.
 //       To do that, you can run main in this file.
@@ -104,6 +105,7 @@ private fun generatorForTopDownAnalyzerForJvm() =
 
             publicField(javaClass<JavaDescriptorResolver>())
             publicField(javaClass<DeserializationGlobalContextForJava>())
+            field(javaClass<JavaFlexibleTypeCapabilitiesProvider>())
 
             field(javaClass<AdditionalCheckerProvider>(),
                   init = GivenExpression(javaClass<JavaDeclarationCheckerProvider>().getName() + ".INSTANCE$"))
@@ -185,7 +187,8 @@ private fun generatorForLazyResolveWithJava() =
                     javaClass<PsiBasedMethodSignatureChecker>(),
                     javaClass<PsiBasedExternalAnnotationResolver>(),
                     javaClass<JavaPropertyInitializerEvaluatorImpl>(),
-                    javaClass<JavaSourceElementFactoryImpl>()
+                    javaClass<JavaSourceElementFactoryImpl>(),
+                    javaClass<JavaFlexibleTypeCapabilitiesProvider>()
             )
             field(javaClass<AdditionalCheckerProvider>(),
                   init = GivenExpression(javaClass<JavaDeclarationCheckerProvider>().getName() + ".INSTANCE$"))
