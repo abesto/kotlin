@@ -19,7 +19,6 @@ package org.jetbrains.jet.j2k.test
 import java.io.File
 import com.intellij.openapi.util.io.FileUtil
 import org.jetbrains.jet.j2k.Converter
-import org.jetbrains.jet.j2k.JavaToKotlinTranslator
 import org.jetbrains.jet.j2k.ConverterSettings
 import java.util.regex.Pattern
 import com.intellij.testFramework.LightPlatformTestCase
@@ -32,11 +31,10 @@ import org.jetbrains.jet.test.util.trimIndent
 import org.jetbrains.jet.j2k.FilesConversionScope
 import org.jetbrains.jet.plugin.j2k.J2kPostProcessor
 import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase
-import com.intellij.testFramework.LightProjectDescriptor
 import org.jetbrains.jet.plugin.JetWithJdkAndRuntimeLightProjectDescriptor
 import com.intellij.psi.PsiJavaFile
-import com.intellij.psi.PsiFile
 import org.jetbrains.jet.j2k.IdeaReferenceSearcher
+import org.jetbrains.jet.j2k.JavaToKotlinConverter
 
 public abstract class AbstractJavaToKotlinConverterTest() : LightCodeInsightFixtureTestCase() {
     val testHeaderPattern = Pattern.compile("//(element|expression|statement|method|class|file|comp)\n")
@@ -126,14 +124,14 @@ public abstract class AbstractJavaToKotlinConverterTest() : LightCodeInsightFixt
 
     private fun elementToKotlin(text: String, settings: ConverterSettings, project: Project): String {
         val fileWithText = createJavaFile(text)
-        val converter = Converter.create(project, settings, FilesConversionScope(listOf(fileWithText)), IdeaReferenceSearcher, J2kPostProcessor(fileWithText))
+        val converter = JavaToKotlinConverter(project, settings, FilesConversionScope(listOf(fileWithText)), IdeaReferenceSearcher, J2kPostProcessor(fileWithText))
         val element = fileWithText.getFirstChild()!!
         return converter.elementToKotlin(element)
     }
 
     private fun fileToKotlin(text: String, settings: ConverterSettings, project: Project): String {
         val file = createJavaFile(text)
-        val converter = Converter.create(project, settings, FilesConversionScope(listOf(file)), IdeaReferenceSearcher, J2kPostProcessor(file))
+        val converter = JavaToKotlinConverter(project, settings, FilesConversionScope(listOf(file)), IdeaReferenceSearcher, J2kPostProcessor(file))
         return converter.elementToKotlin(file)
     }
 
