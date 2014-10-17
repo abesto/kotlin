@@ -1351,6 +1351,12 @@ public class JavaToKotlinConverterTestGenerated extends AbstractJavaToKotlinConv
             doTest(fileName);
         }
         
+        @TestMetadata("DifferentFieldNameAndDefaultParameterValue.java")
+        public void testDifferentFieldNameAndDefaultParameterValue() throws Exception {
+            String fileName = JetTestUtils.navigationMetadata("j2k/tests/testData/ast/dropAccessors/DifferentFieldNameAndDefaultParameterValue.java");
+            doTest(fileName);
+        }
+        
         @TestMetadata("DifferentFieldNameAndSuperClass.java")
         public void testDifferentFieldNameAndSuperClass() throws Exception {
             String fileName = JetTestUtils.navigationMetadata("j2k/tests/testData/ast/dropAccessors/DifferentFieldNameAndSuperClass.java");
