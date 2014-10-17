@@ -56,13 +56,14 @@ import org.jetbrains.jet.plugin.util.psi.patternMatching.JetPsiRange
 import org.jetbrains.jet.plugin.util.psi.patternMatching.JetPsiRange.Match
 import org.jetbrains.jet.plugin.util.psi.patternMatching.UnificationResult.WeaklyMatched
 import org.jetbrains.jet.plugin.util.psi.patternMatching.UnificationResult.StronglyMatched
-import org.jetbrains.jet.lang.psi.JetDeclarationWithBody
 import org.jetbrains.jet.plugin.util.IdeDescriptorRenderers
 
 fun ExtractableCodeDescriptor.getDeclarationText(
         options: ExtractionGeneratorOptions = ExtractionGeneratorOptions.DEFAULT,
         withBody: Boolean = true,
-        descriptorRenderer: DescriptorRenderer = IdeDescriptorRenderers.SOURCE_CODE
+        descriptorRenderer: DescriptorRenderer = if (options.flexibleTypesAllowed)
+                                                    DescriptorRenderer.FLEXIBLE_TYPES_FOR_CODE
+                                                 else IdeDescriptorRenderers.SOURCE_CODE
 ): String {
     if (!canGenerateProperty() && options.extractAsProperty) {
         throw IllegalArgumentException("Can't generate property: ${extractionData.getCodeFragmentText()}")
@@ -342,7 +343,7 @@ fun ExtractableCodeDescriptor.generateDeclaration(options: ExtractionGeneratorOp
     fun createDeclaration(): JetNamedDeclaration {
         return with(extractionData) {
             if (options.inTempFile) {
-                createTemporaryDeclaration("${getDeclarationText()}\n")
+                createTemporaryDeclaration("${getDeclarationText(options)}\n")
             }
             else {
                 psiFactory.createDeclaration(getDeclarationText(options))
