@@ -29,6 +29,17 @@ import org.jetbrains.kotlin.doc.KDocConfig
 import java.util.concurrent.Callable
 import org.gradle.api.Project
 import org.jetbrains.jet.config.Services
+import org.jetbrains.jet.cli.js.K2JSCompiler
+import org.jetbrains.jet.cli.common.arguments.K2JSCompilerArguments
+import org.jetbrains.k2js.config.MetaInfServices
+import org.jetbrains.k2js.config.ClassPathLibraryDefintionsConfig
+import org.jetbrains.jet.cli.common.CLIConfigurationKeys
+import org.jetbrains.jet.config.CompilerConfiguration
+import org.jetbrains.jet.cli.jvm.compiler.CompileEnvironmentUtil
+import org.jetbrains.jet.cli.jvm.compiler.JetCoreEnvironment
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.util.Disposer
+import org.jetbrains.k2js.config.EcmaVersion
 
 public open class KotlinCompile(): AbstractCompile() {
 
@@ -139,6 +150,103 @@ public open class KotlinCompile(): AbstractCompile() {
         if (outputDirFile.exists()) {
             FileUtils.copyDirectory(outputDirFile, getDestinationDir())
         }
+    }
+}
+
+/**
+ * Copies a lot of the code of KotlinCompile. Once stable, this is a prime target for some DRYing.
+ */
+public open class KotlinCompileJavascript(): AbstractCompile() {
+
+    val srcDirsRoots = HashSet<File>()
+    val compiler = K2JSCompiler()
+
+    private val logger = Logging.getLogger(this.javaClass)
+    override fun getLogger() = logger
+
+    public var kotlinOptions: K2JSCompilerArguments = K2JSCompilerArguments()
+    public var kotlinDestinationDir : File? = getDestinationDir()
+
+    // override setSource to track source directory sets
+    override fun setSource(source: Any?) {
+        srcDirsRoots.clear()
+        if (source is SourceDirectorySet) {
+            srcDirsRoots.addAll(source.getSrcDirs())
+        }
+        super.setSource(source)
+    }
+
+    // override source to track source directory sets
+    override fun source(vararg sources: Any?): SourceTask? {
+        for (source in sources) {
+            if (source is SourceDirectorySet) {
+                srcDirsRoots.addAll(source.getSrcDirs())
+            }
+        }
+        return super.source(sources)
+    }
+
+    fun findSrcDirRoot(file: File): File? {
+        val absPath = file.getAbsolutePath()
+        for (root in srcDirsRoots) {
+            val rootAbsPath = root.getAbsolutePath()
+            if (FilenameUtils.directoryContains(rootAbsPath, absPath)) {
+                return root
+            }
+        }
+        return null
+    }
+
+    [TaskAction]
+    override fun compile() {
+
+        getLogger().debug("Starting Kotlin to JavaScript compilation task")
+
+        val args = K2JSCompilerArguments()
+
+        val sources = ArrayList<File>()
+        for (file in getSource()) {
+            if (!FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("java")) {
+                sources.add(file)
+            }
+        }
+
+        if (sources.empty) {
+            getLogger().warn("No Kotlin files found, skipping Kotlin compiler task")
+            return
+        }
+
+        args.freeArgs = sources.map { it.getAbsolutePath() }
+
+        args.outputPrefix = kotlinOptions.outputPrefix
+        args.outputFile = if (StringUtils.isEmpty(kotlinOptions.outputFile)) { "${kotlinDestinationDir}/app.js" } else { kotlinOptions.outputFile }
+        args.outputPostfix = kotlinOptions.outputPostfix
+
+        args.noInline = kotlinOptions.noInline
+        args.sourceMap = kotlinOptions.sourceMap
+        args.suppressWarnings = kotlinOptions.suppressWarnings
+        args.target = kotlinOptions.target
+        args.verbose = kotlinOptions.verbose
+        args.version = kotlinOptions.version
+
+        args.libraryFiles = kotlinOptions.libraryFiles
+
+        val outputDir = File(args.outputFile).directory
+        if (!outputDir.exists()) {
+            outputDir.mkdirs()
+        }
+
+        val messageCollector = GradleMessageCollector(getLogger())
+        getLogger().debug("Calling compiler")
+        val exitCode = compiler.exec(messageCollector, Services.EMPTY, args)
+
+        when (exitCode) {
+            ExitCode.COMPILATION_ERROR -> throw GradleException("Compilation error. See log for more details")
+            ExitCode.INTERNAL_ERROR -> throw GradleException("Internal compiler error. See log for more details")
+            else -> {}
+        }
+
+        // TODO: copy kotlin.js to configurable target, default to next to the output file
     }
 }
 
