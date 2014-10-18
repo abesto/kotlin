@@ -43,7 +43,6 @@ import javax.inject.Inject
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompileJavascript
 
 val DEFAULT_ANNOTATIONS = "org.jebrains.kotlin.gradle.defaultAnnotations"
-val JSLIB_JAR = "org.jebrains.kotlin.gradle.jsLibraryJar"
 
 open class KotlinPlugin [Inject] (val scriptHandler: ScriptHandler): Plugin<Project> {
 
