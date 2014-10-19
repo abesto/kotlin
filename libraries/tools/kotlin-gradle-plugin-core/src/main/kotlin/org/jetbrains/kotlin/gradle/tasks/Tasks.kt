@@ -40,6 +40,7 @@ import org.jetbrains.jet.cli.jvm.compiler.JetCoreEnvironment
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import org.jetbrains.k2js.config.EcmaVersion
+import org.gradle.api.tasks.Copy
 
 public open class KotlinCompile(): AbstractCompile() {
 
@@ -217,19 +218,19 @@ public open class KotlinCompileJavascript(): AbstractCompile() {
         }
 
         args.freeArgs = sources.map { it.getAbsolutePath() }
-
-        args.outputPrefix = kotlinOptions.outputPrefix
         args.outputFile = if (StringUtils.isEmpty(kotlinOptions.outputFile)) { "${kotlinDestinationDir}/app.js" } else { kotlinOptions.outputFile }
+        args.outputPrefix = kotlinOptions.outputPrefix
         args.outputPostfix = kotlinOptions.outputPostfix
-
+        args.libraryFiles = kotlinOptions.libraryFiles
         args.noInline = kotlinOptions.noInline
         args.sourceMap = kotlinOptions.sourceMap
         args.suppressWarnings = kotlinOptions.suppressWarnings
         args.target = kotlinOptions.target
+
+        // TODO: verbose, version flags are ignored or the message collector drops those lines
         args.verbose = kotlinOptions.verbose
         args.version = kotlinOptions.version
 
-        args.libraryFiles = kotlinOptions.libraryFiles
 
         val outputDir = File(args.outputFile).directory
         if (!outputDir.exists()) {

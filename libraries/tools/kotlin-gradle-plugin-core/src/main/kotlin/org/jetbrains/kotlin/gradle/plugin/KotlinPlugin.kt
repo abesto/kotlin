@@ -41,6 +41,7 @@ import org.gradle.api.initialization.dsl.ScriptHandler
 import org.jetbrains.kotlin.gradle.plugin.android.AndroidGradleWrapper
 import javax.inject.Inject
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompileJavascript
+import org.gradle.api.tasks.Copy
 
 val DEFAULT_ANNOTATIONS = "org.jebrains.kotlin.gradle.defaultAnnotations"
 
@@ -128,19 +129,17 @@ open class KotlinPlugin [Inject] (val scriptHandler: ScriptHandler): Plugin<Proj
  * Shares quite a bit of code with KotlinPlugin. Target for DRYing.
  */
 open class KotlinJavascriptPlugin [Inject] (val scriptHandler: ScriptHandler): Plugin<Project> {
-    var version: String = "version-unset"
-
     public override fun apply(project: Project) {
         val javaBasePlugin = project.getPlugins().apply(javaClass<JavaBasePlugin>())
         val javaPluginConvention = project.getConvention().getPlugin(javaClass<JavaPluginConvention>())
 
         project.getPlugins().apply(javaClass<JavaPlugin>())
 
-        version = project.getProperties()["kotlin.gradle.plugin.version"] as String
-        project.getExtensions().add(DEFAULT_ANNOTATIONS, GradleUtils(scriptHandler).resolveDependencies("org.jetbrains.kotlin:kotlin-jdk-annotations:$version"))
-
         configureSourceSetDefaults(project as ProjectInternal, javaBasePlugin, javaPluginConvention)
         configureKDoc(project, javaPluginConvention)
+
+        val version = project.getProperties()["kotlin.gradle.plugin.version"] as String
+        project.getExtensions().add(DEFAULT_ANNOTATIONS, GradleUtils(scriptHandler).resolveDependencies("org.jetbrains.kotlin:kotlin-jdk-annotations:$version"))
     }
 
     private fun configureSourceSetDefaults(project: ProjectInternal,
@@ -151,7 +150,7 @@ open class KotlinJavascriptPlugin [Inject] (val scriptHandler: ScriptHandler): P
                 if (sourceSet is HasConvention) {
                     val sourceSetName = sourceSet.getName()
                     val kotlinSourceSet = KotlinSourceSetImpl( sourceSetName, project.getFileResolver())
-                    sourceSet.getConvention().getPlugins().put("kotlin", kotlinSourceSet)
+                    sourceSet.getConvention().getPlugins().put("kotlin-javascript", kotlinSourceSet)
 
                     val kotlinDirSet = kotlinSourceSet.getKotlin()
                     kotlinDirSet.srcDir(project.file("src/${sourceSetName}/kotlin"))
@@ -163,17 +162,26 @@ open class KotlinJavascriptPlugin [Inject] (val scriptHandler: ScriptHandler): P
                     }))
 
                     val kotlinTaskName = sourceSet.getCompileTaskName("kotlinJavascript")
-                    val kotlinTask: KotlinCompileJavascript = project.getTasks().create(kotlinTaskName, javaClass<KotlinCompileJavascript>())
-                    kotlinTask.kotlinOptions.libraryFiles =
-                            GradleUtils(scriptHandler).resolveDependencies("org.jetbrains.kotlin:kotlin-js-library:$version").map{it.getAbsolutePath()}.copyToArray()
-                    javaBasePlugin.configureForSourceSet(sourceSet, kotlinTask)
+                    val kotlinJavascriptTask: KotlinCompileJavascript = project.getTasks().create(kotlinTaskName, javaClass<KotlinCompileJavascript>())
+
+                    val version = project.getProperties()["kotlin.gradle.plugin.version"] as String
+                    val jsLibraryJar = GradleUtils(scriptHandler).resolveDependencies("org.jetbrains.kotlin:kotlin-js-library:$version").map{it.getAbsolutePath()}[0]
+
+                    kotlinJavascriptTask.kotlinOptions.libraryFiles = array(jsLibraryJar)
+                    javaBasePlugin.configureForSourceSet(sourceSet, kotlinJavascriptTask)
                     val kotlinOutputDir = File(project.getBuildDir(), "kotlin-javascript/${sourceSetName}")
-                    kotlinTask.kotlinDestinationDir = kotlinOutputDir;
+                    kotlinJavascriptTask.kotlinDestinationDir = kotlinOutputDir;
+                    kotlinJavascriptTask.setDescription("Compiles the $sourceSet.kotlin to JavaScript.")
+                    kotlinJavascriptTask.source(kotlinDirSet)
 
-                    kotlinTask.setDescription("Compiles the $sourceSet.kotlin to JavaScript.")
-                    kotlinTask.source(kotlinDirSet)
+                    val copyKotlinJsTaskName = sourceSet.getTaskName("copy", "kotlinJs")
+                    val copyKotlinJsTask = project.getTasks().create(copyKotlinJsTaskName, javaClass<Copy>())
+                    copyKotlinJsTask.from(project.zipTree(jsLibraryJar))
+                    copyKotlinJsTask.into(kotlinOutputDir)
+                    copyKotlinJsTask.include("kotlin.js")
 
-                    (project.getTasks().findByName(sourceSet.getCompileJavaTaskName()) as AbstractCompile?)?.dependsOn(kotlinTaskName)
+                    (project.getTasks().findByName(sourceSet.getCompileJavaTaskName()) as AbstractCompile?)
+                        ?.dependsOn(kotlinTaskName)?.dependsOn(copyKotlinJsTaskName)
                 }
             }
         })
