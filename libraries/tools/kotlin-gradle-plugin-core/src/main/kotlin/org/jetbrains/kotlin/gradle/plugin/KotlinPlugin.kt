@@ -81,7 +81,7 @@ open class KotlinPlugin [Inject] (val scriptHandler: ScriptHandler): Plugin<Proj
                     }))
 
                     val kotlinTaskName = sourceSet.getCompileTaskName("kotlin")
-                    val kotlinTask: KotlinCompile = project.getTasks().create(kotlinTaskName, javaClass<KotlinCompile>())
+                    val kotlinTask = project.getTasks().create(kotlinTaskName, javaClass<KotlinCompile>())
 
                     javaBasePlugin.configureForSourceSet(sourceSet, kotlinTask)
                     // store kotlin classes in separate directory. They will serve as class-path to java compiler
@@ -162,7 +162,7 @@ open class Kotlin2JsPlugin [Inject] (val scriptHandler: ScriptHandler): Plugin<P
                     }))
 
                     val compileKotlin2JsTaskName = sourceSet.getCompileTaskName("kotlin2Js")
-                    val kotlinJavascriptTask: Kotlin2JsCompile = project.getTasks().create(compileKotlin2JsTaskName, javaClass<Kotlin2JsCompile>())
+                    val kotlinJavascriptTask = project.getTasks().create(compileKotlin2JsTaskName, javaClass<Kotlin2JsCompile>())
 
                     val version = project.getProperties()["kotlin.gradle.plugin.version"] as String
                     val jsLibraryJar = GradleUtils(scriptHandler).resolveDependencies("org.jetbrains.kotlin:kotlin-js-library:$version").map{it.getAbsolutePath()}[0]
@@ -286,7 +286,7 @@ open class KotlinAndroidPlugin [Inject] (val scriptHandler: ScriptHandler): Plug
                 val variantName = variant.getName()
 
                 val kotlinTaskName = "compile${variantName.capitalize()}Kotlin"
-                val kotlinTask: KotlinCompile = project.getTasks().create(kotlinTaskName, javaClass<KotlinCompile>())
+                val kotlinTask = project.getTasks().create(kotlinTaskName, javaClass<KotlinCompile>())
                 kotlinTask.kotlinOptions = kotlinOptions
 
 

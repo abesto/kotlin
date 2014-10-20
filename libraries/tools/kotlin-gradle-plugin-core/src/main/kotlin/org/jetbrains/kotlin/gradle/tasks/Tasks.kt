@@ -142,7 +142,6 @@ public open class KotlinCompile(): AbstractCompile() {
         when (exitCode) {
             ExitCode.COMPILATION_ERROR -> throw GradleException("Compilation error. See log for more details")
             ExitCode.INTERNAL_ERROR -> throw GradleException("Internal compiler error. See log for more details")
-            else -> {}
         }
 
         getLogger().debug("Copying resulting files to classes")
@@ -246,7 +245,6 @@ public open class Kotlin2JsCompile(): AbstractCompile() {
         when (exitCode) {
             ExitCode.COMPILATION_ERROR -> throw GradleException("Compilation error. See log for more details")
             ExitCode.INTERNAL_ERROR -> throw GradleException("Internal compiler error. See log for more details")
-            else -> {}
         }
     }
 }
@@ -305,7 +303,6 @@ public open class KDoc(): SourceTask() {
         when (exitCode) {
             ExitCode.COMPILATION_ERROR -> throw GradleException("Failed to generate kdoc. See log for more details")
             ExitCode.INTERNAL_ERROR -> throw GradleException("Internal generation error. See log for more details")
-            else -> {}
         }
 
     }
