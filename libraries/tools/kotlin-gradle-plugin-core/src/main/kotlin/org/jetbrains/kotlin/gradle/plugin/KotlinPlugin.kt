@@ -40,7 +40,7 @@ import org.gradle.api.UnknownDomainObjectException
 import org.gradle.api.initialization.dsl.ScriptHandler
 import org.jetbrains.kotlin.gradle.plugin.android.AndroidGradleWrapper
 import javax.inject.Inject
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompileJavascript
+import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 import org.gradle.api.tasks.Copy
 
 val DEFAULT_ANNOTATIONS = "org.jebrains.kotlin.gradle.defaultAnnotations"
@@ -128,7 +128,7 @@ open class KotlinPlugin [Inject] (val scriptHandler: ScriptHandler): Plugin<Proj
 /**
  * Shares quite a bit of code with KotlinPlugin. Target for DRYing.
  */
-open class KotlinJavascriptPlugin [Inject] (val scriptHandler: ScriptHandler): Plugin<Project> {
+open class Kotlin2JsPlugin [Inject] (val scriptHandler: ScriptHandler): Plugin<Project> {
     public override fun apply(project: Project) {
         val javaBasePlugin = project.getPlugins().apply(javaClass<JavaBasePlugin>())
         val javaPluginConvention = project.getConvention().getPlugin(javaClass<JavaPluginConvention>())
@@ -150,7 +150,7 @@ open class KotlinJavascriptPlugin [Inject] (val scriptHandler: ScriptHandler): P
                 if (sourceSet is HasConvention) {
                     val sourceSetName = sourceSet.getName()
                     val kotlinSourceSet = KotlinSourceSetImpl( sourceSetName, project.getFileResolver())
-                    sourceSet.getConvention().getPlugins().put("kotlin-javascript", kotlinSourceSet)
+                    sourceSet.getConvention().getPlugins().put("kotlin2js", kotlinSourceSet)
 
                     val kotlinDirSet = kotlinSourceSet.getKotlin()
                     kotlinDirSet.srcDir(project.file("src/${sourceSetName}/kotlin"))
@@ -161,17 +161,17 @@ open class KotlinJavascriptPlugin [Inject] (val scriptHandler: ScriptHandler): P
                         kotlinDirSet.contains(elem.getFile())
                     }))
 
-                    val kotlinTaskName = sourceSet.getCompileTaskName("kotlinJavascript")
-                    val kotlinJavascriptTask: KotlinCompileJavascript = project.getTasks().create(kotlinTaskName, javaClass<KotlinCompileJavascript>())
+                    val compileKotlin2JsTaskName = sourceSet.getCompileTaskName("kotlin2Js")
+                    val kotlinJavascriptTask: Kotlin2JsCompile = project.getTasks().create(compileKotlin2JsTaskName, javaClass<Kotlin2JsCompile>())
 
                     val version = project.getProperties()["kotlin.gradle.plugin.version"] as String
                     val jsLibraryJar = GradleUtils(scriptHandler).resolveDependencies("org.jetbrains.kotlin:kotlin-js-library:$version").map{it.getAbsolutePath()}[0]
 
                     kotlinJavascriptTask.kotlinOptions.libraryFiles = array(jsLibraryJar)
                     javaBasePlugin.configureForSourceSet(sourceSet, kotlinJavascriptTask)
-                    val kotlinOutputDir = File(project.getBuildDir(), "kotlin-javascript/${sourceSetName}")
+                    val kotlinOutputDir = File(project.getBuildDir(), "kotlin2js/${sourceSetName}")
                     kotlinJavascriptTask.kotlinDestinationDir = kotlinOutputDir;
-                    kotlinJavascriptTask.setDescription("Compiles the $sourceSet.kotlin to JavaScript.")
+                    kotlinJavascriptTask.setDescription("Compiles the kotlin sources in $sourceSet to JavaScript.")
                     kotlinJavascriptTask.source(kotlinDirSet)
 
                     val copyKotlinJsTaskName = sourceSet.getTaskName("copy", "kotlinJs")
@@ -181,7 +181,7 @@ open class KotlinJavascriptPlugin [Inject] (val scriptHandler: ScriptHandler): P
                     copyKotlinJsTask.include("kotlin.js")
 
                     (project.getTasks().findByName(sourceSet.getCompileJavaTaskName()) as AbstractCompile?)
-                        ?.dependsOn(kotlinTaskName)?.dependsOn(copyKotlinJsTaskName)
+                        ?.dependsOn(compileKotlin2JsTaskName)?.dependsOn(copyKotlinJsTaskName)
                 }
             }
         })

@@ -157,7 +157,7 @@ public open class KotlinCompile(): AbstractCompile() {
 /**
  * Copies a lot of the code of KotlinCompile. Once stable, this is a prime target for some DRYing.
  */
-public open class KotlinCompileJavascript(): AbstractCompile() {
+public open class Kotlin2JsCompile(): AbstractCompile() {
 
     val srcDirsRoots = HashSet<File>()
     val compiler = K2JSCompiler()
@@ -246,8 +246,6 @@ public open class KotlinCompileJavascript(): AbstractCompile() {
             ExitCode.INTERNAL_ERROR -> throw GradleException("Internal compiler error. See log for more details")
             else -> {}
         }
-
-        // TODO: copy kotlin.js to configurable target, default to next to the output file
     }
 }
 

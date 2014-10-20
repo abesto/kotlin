@@ -96,9 +96,9 @@ open class KotlinAndriodPluginWrapper: KotlinBasePluginWrapper() {
     }
 }
 
-open class KotlinJavascriptPluginWrapper: KotlinBasePluginWrapper() {
+open class Kotlin2JsPluginWrapper : KotlinBasePluginWrapper() {
     public override fun getPluginClassName():String {
-        return "org.jetbrains.kotlin.gradle.plugin.KotlinJavascriptPlugin"
+        return "org.jetbrains.kotlin.gradle.plugin.Kotlin2JsPlugin"
     }
 }
 
