@@ -197,6 +197,15 @@ public open class Kotlin2JsCompile(): AbstractCompile() {
         return null
     }
 
+    fun addLibraryFiles(vararg fs: String) {
+        kotlinOptions.libraryFiles = (kotlinOptions.libraryFiles + fs).copyToArray()
+    }
+
+    fun addLibraryFiles(vararg fs: File) {
+        val strs = fs.map{it.getPath()}.copyToArray()
+        addLibraryFiles(*strs)
+    }
+
     [TaskAction]
     override fun compile() {
 

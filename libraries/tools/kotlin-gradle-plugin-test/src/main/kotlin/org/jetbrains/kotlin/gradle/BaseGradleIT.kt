@@ -55,6 +55,11 @@ open class BaseGradleIT(resourcesRoot: String = "src/test/resources") {
         return this
     }
 
+    fun CompiledProject.assertFileExists(path: String = ""): CompiledProject {
+        assertTrue(File(File(workingDir, project.projectName), path).exists(), "The file [$path] does not exist.")
+        return this
+    }
+
     private fun createCommand(params: Array<String>): List<String> {
         val pathToKotlinPlugin = "-PpathToKotlinPlugin=" + File("local-repo").getAbsolutePath()
         val tailParameters = params + listOf(pathToKotlinPlugin, "--no-daemon", "--debug")
