@@ -1,6 +1,7 @@
 package example
 
 import kotlin.js.dom.html.document
+import example.library.Counter
 
 
 fun main(args: Array<String>) {

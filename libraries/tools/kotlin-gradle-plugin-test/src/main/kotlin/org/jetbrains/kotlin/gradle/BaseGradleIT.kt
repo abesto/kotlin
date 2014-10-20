@@ -60,6 +60,14 @@ open class BaseGradleIT(resourcesRoot: String = "src/test/resources") {
         return this
     }
 
+    fun CompiledProject.assertFileContains(path: String, vararg expected: String): CompiledProject {
+        val text = File(File(workingDir, project.projectName), path).readText()
+        expected.forEach {
+            assertTrue(text.contains(it), "$path should contain '$it', actual file contents:\n$text")
+        }
+        return this
+    }
+
     private fun createCommand(params: Array<String>): List<String> {
         val pathToKotlinPlugin = "-PpathToKotlinPlugin=" + File("local-repo").getAbsolutePath()
         val tailParameters = params + listOf(pathToKotlinPlugin, "--no-daemon", "--debug")

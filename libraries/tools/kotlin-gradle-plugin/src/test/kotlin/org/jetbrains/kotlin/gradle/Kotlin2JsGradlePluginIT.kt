@@ -19,6 +19,10 @@ class Kotlin2JsGradlePluginIT: BaseGradleIT() {
             listOf("mainProject/web/js/app.js",                  "mainProject/web/js/lib/kotlin.js",
                    "libraryProject/build/kotlin2js/main/app.js", "libraryProject/build/kotlin2js/main/kotlin.js"
             ).forEach{assertFileExists(it)}
+
+            assertFileContains("libraryProject/build/kotlin2js/main/app.js", "Counter: Kotlin.createClass")
+            // Should be updated to `new _.example.library.Counter` once namespaced imports from libraryFiles are implemented
+            assertFileContains("mainProject/web/js/app.js", "var counter = new Counter(counterText);")
         }
 
         project.build("build") {
