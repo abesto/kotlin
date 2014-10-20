@@ -234,7 +234,9 @@ public open class Kotlin2JsCompile(): AbstractCompile() {
 
         val outputDir = File(args.outputFile).directory
         if (!outputDir.exists()) {
-            outputDir.mkdirs()
+            if (!outputDir.mkdirs()) {
+               throw GradleException("Failed to create output directory ${outputDir} or one of its ancestors")
+            }
         }
 
         val messageCollector = GradleMessageCollector(getLogger())
