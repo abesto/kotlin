@@ -12,9 +12,9 @@ class Kotlin2JsGradlePluginIT: BaseGradleIT() {
             assertSuccessful()
             assertReportExists()
 
-            assertContains(":libraryProject:jarSources",
-                           ":mainProject:compileKotlin2Js",    ":mainProject:copyKotlinJs",
-                           ":libraryProject:compileKotlin2Js", ":libraryProject:copyKotlinJs")
+            assertContains(":libraryProject:jarSources\n",
+                           ":mainProject:compileKotlin2Js\n",    ":mainProject:copyKotlinJs\n",
+                           ":libraryProject:compileKotlin2Js\n", ":libraryProject:copyKotlinJs\n")
 
             listOf("mainProject/web/js/app.js",                  "mainProject/web/js/lib/kotlin.js",
                    "libraryProject/build/kotlin2js/main/app.js", "libraryProject/build/kotlin2js/main/kotlin.js"
