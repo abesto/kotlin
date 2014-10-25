@@ -46,6 +46,8 @@ import org.gradle.api.file.SourceDirectorySet
 import kotlin.properties.Delegates
 import org.gradle.api.tasks.Delete
 import org.codehaus.groovy.runtime.MethodClosure
+import org.jetbrains.kotlin.gradle.tasks.RewritePathsInSourceMap
+import groovy.lang.Closure
 
 val DEFAULT_ANNOTATIONS = "org.jebrains.kotlin.gradle.defaultAnnotations"
 
@@ -61,7 +63,9 @@ abstract class KotlinSourceSetProcessor<T: AbstractCompile>(val project: Project
     abstract protected val compilerClass: Class<T>
     abstract protected fun doTargetSpecificProcessing()
 
-    protected val sourceSetName: String by Delegates.lazy { sourceSet.getName() }
+    protected val sourceSetName: String = sourceSet.getName()
+    protected val sourceRootDir: String = "src/${sourceSetName}/kotlin"
+    protected val absoluteSourceRootDir: String = project.getProjectDir().getPath() + "/" + sourceRootDir
     protected val kotlinSourceSet: KotlinSourceSet? by Delegates.lazy { createKotlinSourceSet() }
     protected val kotlinDirSet: SourceDirectorySet? by Delegates.lazy { createKotlinDirSet() }
     protected val kotlinTask: T by Delegates.lazy { createKotlinCompileTask() }
@@ -87,7 +91,7 @@ abstract class KotlinSourceSetProcessor<T: AbstractCompile>(val project: Project
             }
 
     open protected fun createKotlinDirSet(): SourceDirectorySet? {
-        val srcDir = project.file("src/${sourceSetName}/kotlin")
+        val srcDir = project.file(sourceRootDir)
         logger.debug("Creating Kotlin SourceDirectorySet for source set ${kotlinSourceSet} with src dir ${srcDir}")
         val kotlinDirSet = kotlinSourceSet?.getKotlin()
         kotlinDirSet?.srcDir(srcDir)
@@ -200,39 +204,90 @@ open class Kotlin2JsPlugin [Inject] (scriptHandler: ScriptHandler): AbstractKotl
                 override val compilerClass = javaClass<Kotlin2JsCompile>()
 
                 val copyKotlinJsTaskName = sourceSet.getTaskName("copy", "kotlinJs")
+                val clean = project.getTasks().findByName("clean")
+                val compileJava = project.getTasks().findByName(sourceSet.getCompileJavaTaskName()) as AbstractCompile?
 
-                override fun doTargetSpecificProcessing() {
-                    val version = project.getProperties()["kotlin.gradle.plugin.version"] as String
-                    val jsLibraryJar = GradleUtils(scriptHandler).resolveDependencies("org.jetbrains.kotlin:kotlin-js-library:$version").map{it.getAbsolutePath()}[0]
-
-                    kotlinTask.kotlinOptions.libraryFiles = array(jsLibraryJar)
-                    val kotlinOutputDir = File(project.getBuildDir(), "kotlin2js/${sourceSetName}")
-                    kotlinTask.kotlinDestinationDir = kotlinOutputDir
-
-                    createCopyKotlinJsTask(jsLibraryJar, kotlinOutputDir)
-
-                    (project.getTasks().findByName(sourceSet.getCompileJavaTaskName()) as AbstractCompile?)
-                            ?.dependsOn(kotlinTaskName)?.dependsOn(copyKotlinJsTaskName)
-
-                    project.getTasks().findByName("clean")
-                            ?.dependsOn("clean" + kotlinTaskName.capitalize())
-                            ?.dependsOn("clean" + copyKotlinJsTaskName.capitalize())
-                }
+                val defaultKotlinDestinationDir = File(project.getBuildDir(), "kotlin2js/${sourceSetName}")
+                private fun kotlinTaskDestinationDir(): File? = kotlinTask.kotlinDestinationDir
 
                 private fun kotlinJsTargetPath(): String {
                     val copyTask = project.getTasks().getByName(copyKotlinJsTaskName) as Copy
                     return "${copyTask.getDestinationDir()}/kotlin.js"
                 }
 
-                private fun createCopyKotlinJsTask(jsLibraryJar: String, kotlinOutputDir: File) {
+                private fun kotlinSourcePathsForSourceMap() = sourceSet.getAllSource()
+                        .map { it.path }
+                        .filter { it.endsWith(".kt") }
+                        .map { it.replace(absoluteSourceRootDir, kotlinTask.sourceMapDestinationDir().getPath()) }
+
+                private fun shouldGenerateSourceMap() = kotlinTask.kotlinOptions.sourceMap
+
+                override fun doTargetSpecificProcessing() {
+                    val version = project.getProperties()["kotlin.gradle.plugin.version"] as String
+                    val jsLibraryJar = GradleUtils(scriptHandler).resolveDependencies("org.jetbrains.kotlin:kotlin-js-library:$version").map{it.getAbsolutePath()}[0]
+
+                    kotlinTask.kotlinOptions.libraryFiles = array(jsLibraryJar)
+                    kotlinTask.kotlinDestinationDir = defaultKotlinDestinationDir
+
+                    compileJava?.dependsOn(kotlinTaskName)
+                    clean?.dependsOn("clean" + kotlinTaskName.capitalize())
+
+                    createCopyKotlinJsTask(jsLibraryJar)
+                    createCopyKotlinSourcesForSourceMapTask()
+                    createRewritePathsInSourceMapTask()
+                    createCleanSourceMapTask()
+                }
+
+                private fun createCopyKotlinJsTask(jsLibraryJar: String) {
+                    val copyKotlinJsTaskName = sourceSet.getTaskName("copy", "kotlinJs")
+
                     val copyKotlinJsTask = project.getTasks().create(copyKotlinJsTaskName, javaClass<Copy>())
                     copyKotlinJsTask.from(project.zipTree(jsLibraryJar))
-                    copyKotlinJsTask.into(kotlinOutputDir)
+                    copyKotlinJsTask.into(MethodClosure(this, "kotlinTaskDestinationDir"))
                     copyKotlinJsTask.include("kotlin.js")
+                    compileJava?.dependsOn(copyKotlinJsTaskName)
 
                     val cleanTaskName = "clean" + copyKotlinJsTaskName.capitalize()
                     val cleanTask = project.getTasks().create(cleanTaskName, javaClass<Delete>())
                     cleanTask.delete(MethodClosure(this, "kotlinJsTargetPath"))
+                    clean?.dependsOn(cleanTaskName)
+                }
+
+                private fun createCopyKotlinSourcesForSourceMapTask() {
+                    val copyTaskName = sourceSet.getTaskName("copy", "kotlinSourcesForSourceMap")
+                    val copyTask = project.getTasks().create(copyTaskName, javaClass<Copy>())
+                    copyTask.onlyIf { kotlinTask.kotlinOptions.sourceMap }
+                    sourceSet.getAllSource()
+                    copyTask.from(sourceRootDir)
+                    copyTask.into(MethodClosure(kotlinTask, "sourceMapDestinationDir"))
+                    copyTask.getOutputs().file(MethodClosure(this, "kotlinSourcePathsForSourceMap"))
+                    compileJava?.dependsOn(copyTask)
+
+                    val cleanTask = project.getTasks().create("clean" + copyTaskName.capitalize(), javaClass<Delete>())
+                    cleanTask.onlyIf { kotlinTask.kotlinOptions.sourceMap }
+                    cleanTask.delete(MethodClosure(this, "kotlinSourcePathsForSourceMap"))
+                    clean?.dependsOn(cleanTask.getName())
+                 }
+
+                private fun createRewritePathsInSourceMapTask() {
+                    val taskName = sourceSet.getTaskName("rewrite", "pathsInSourceMap")
+                    val task = project.getTasks().create(taskName, javaClass<RewritePathsInSourceMap>())
+                    task.sourceMapPath = { kotlinTask.outputFile() + ".map" }
+                    task.sourceRootDir = { absoluteSourceRootDir }
+                    task.onlyIf { kotlinTask.kotlinOptions.sourceMap }
+                    task.dependsOn(kotlinTaskName)
+                    compileJava?.dependsOn(taskName)
+                    project.getTasks().add(task)
+                }
+
+                private fun createCleanSourceMapTask() {
+                    val taskName = sourceSet.getTaskName("clean", "sourceMap")
+                    val task = project.getTasks().create(taskName, javaClass<Delete>())
+                    task.onlyIf { kotlinTask.kotlinOptions.sourceMap }
+                    task.delete(object : Closure<String>(this) {
+                        override fun call(): String? = kotlinTask.outputFile() + ".map"
+                    })
+                    clean?.dependsOn(taskName)
                 }
             }
 }

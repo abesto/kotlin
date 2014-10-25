@@ -45,12 +45,15 @@ import org.gradle.api.Action
 import org.gradle.api.internal.project.ProjectInternal
 import groovy.lang.Closure
 import org.codehaus.groovy.runtime.MethodClosure
+import org.gradle.api.DefaultTask
 
 
 abstract class AbstractKotlinCompile: AbstractCompile() {
     val srcDirsSources = HashSet<SourceDirectorySet>()
 
-    public var kotlinDestinationDir : File? = getDestinationDir()
+    public var kotlinDestinationDir : File?
+        get() = getDestinationDir()
+        set(f: File?) = setDestinationDir(f)
 
     private val logger = Logging.getLogger(this.javaClass)
     override fun getLogger() = logger
@@ -182,6 +185,8 @@ public open class Kotlin2JsCompile(): AbstractKotlinCompile() {
         }
     }
 
+    public fun sourceMapDestinationDir(): File = File(outputFile()).directory
+
     {
         getOutputs().file(MethodClosure(this, "outputFile"))
     }
@@ -228,6 +233,19 @@ public open class Kotlin2JsCompile(): AbstractKotlinCompile() {
             ExitCode.COMPILATION_ERROR -> throw GradleException("Compilation error. See log for more details")
             ExitCode.INTERNAL_ERROR -> throw GradleException("Internal compiler error. See log for more details")
         }
+    }
+}
+
+public open class RewritePathsInSourceMap(): DefaultTask() {
+    var sourceMapPath: () -> String = {""}
+    var sourceRootDir: () -> String = {""}
+
+    [TaskAction] fun rewrite() {
+        val file = File(sourceMapPath())
+        val text = file.readText("UTF-8")
+        val replace = "file://" + sourceRootDir() + "/"
+        getLogger().debug("Replacing ${replace} in the ${sourceMapPath()}")
+        file.writeText(text.replace(replace, ""))
     }
 }
 
