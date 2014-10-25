@@ -42,17 +42,14 @@ import com.intellij.openapi.util.Disposer
 import org.jetbrains.k2js.config.EcmaVersion
 import org.gradle.api.tasks.Copy
 
-public open class KotlinCompile(): AbstractCompile() {
 
+abstract class AbstractKotlinCompile: AbstractCompile() {
     val srcDirsSources = HashSet<SourceDirectorySet>()
-    val compiler = K2JVMCompiler()
+
+    public var kotlinDestinationDir : File? = getDestinationDir()
 
     private val logger = Logging.getLogger(this.javaClass)
     override fun getLogger() = logger
-
-    public var kotlinOptions: K2JVMCompilerArguments = K2JVMCompilerArguments();
-
-    public var kotlinDestinationDir : File? = getDestinationDir()
 
     // override setSource to track source directory sets
     override fun setSource(source: Any?) {
@@ -85,6 +82,13 @@ public open class KotlinCompile(): AbstractCompile() {
         }
         return null
     }
+
+
+}
+
+public open class KotlinCompile(): AbstractKotlinCompile() {
+    val compiler = K2JVMCompiler()
+    public var kotlinOptions: K2JVMCompilerArguments = K2JVMCompilerArguments();
 
     [TaskAction]
     override fun compile() {
@@ -153,49 +157,9 @@ public open class KotlinCompile(): AbstractCompile() {
     }
 }
 
-/**
- * Copies a lot of the code of KotlinCompile. Once stable, this is a prime target for some DRYing.
- */
-public open class Kotlin2JsCompile(): AbstractCompile() {
-
-    val srcDirsRoots = HashSet<File>()
+public open class Kotlin2JsCompile(): AbstractKotlinCompile() {
     val compiler = K2JSCompiler()
-
-    private val logger = Logging.getLogger(this.javaClass)
-    override fun getLogger() = logger
-
     public var kotlinOptions: K2JSCompilerArguments = K2JSCompilerArguments()
-    public var kotlinDestinationDir : File? = getDestinationDir()
-
-    // override setSource to track source directory sets
-    override fun setSource(source: Any?) {
-        srcDirsRoots.clear()
-        if (source is SourceDirectorySet) {
-            srcDirsRoots.addAll(source.getSrcDirs())
-        }
-        super.setSource(source)
-    }
-
-    // override source to track source directory sets
-    override fun source(vararg sources: Any?): SourceTask? {
-        for (source in sources) {
-            if (source is SourceDirectorySet) {
-                srcDirsRoots.addAll(source.getSrcDirs())
-            }
-        }
-        return super.source(sources)
-    }
-
-    fun findSrcDirRoot(file: File): File? {
-        val absPath = file.getAbsolutePath()
-        for (root in srcDirsRoots) {
-            val rootAbsPath = root.getAbsolutePath()
-            if (FilenameUtils.directoryContains(rootAbsPath, absPath)) {
-                return root
-            }
-        }
-        return null
-    }
 
     fun addLibraryFiles(vararg fs: String) {
         kotlinOptions.libraryFiles = (kotlinOptions.libraryFiles + fs).copyToArray()
@@ -208,17 +172,11 @@ public open class Kotlin2JsCompile(): AbstractCompile() {
 
     [TaskAction]
     override fun compile() {
-
         getLogger().debug("Starting Kotlin to JavaScript compilation task")
 
         val args = K2JSCompilerArguments()
 
-        val sources = ArrayList<File>()
-        for (file in getSource()) {
-            if (!FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("java")) {
-                sources.add(file)
-            }
-        }
+        val sources = getSource().filterNot{FilenameUtils.getExtension(it.getName()).equalsIgnoreCase("java")}
 
         if (sources.empty) {
             getLogger().warn("No Kotlin files found, skipping Kotlin compiler task")
@@ -238,7 +196,6 @@ public open class Kotlin2JsCompile(): AbstractCompile() {
         // TODO: verbose, version flags are ignored or the message collector drops those lines
         args.verbose = kotlinOptions.verbose
         args.version = kotlinOptions.version
-
 
         val outputDir = File(args.outputFile).directory
         if (!outputDir.exists()) {
