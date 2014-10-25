@@ -41,6 +41,10 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import org.jetbrains.k2js.config.EcmaVersion
 import org.gradle.api.tasks.Copy
+import org.gradle.api.Action
+import org.gradle.api.internal.project.ProjectInternal
+import groovy.lang.Closure
+import org.codehaus.groovy.runtime.MethodClosure
 
 
 abstract class AbstractKotlinCompile: AbstractCompile() {
@@ -170,6 +174,18 @@ public open class Kotlin2JsCompile(): AbstractKotlinCompile() {
         addLibraryFiles(*strs)
     }
 
+    fun outputFile(): String {
+        return if (StringUtils.isEmpty(kotlinOptions.outputFile)) {
+            "${kotlinDestinationDir}/app.js"
+        } else {
+            kotlinOptions.outputFile
+        }
+    }
+
+    {
+        getOutputs().file(MethodClosure(this, "outputFile"))
+    }
+
     [TaskAction]
     override fun compile() {
         getLogger().debug("Starting Kotlin to JavaScript compilation task")
@@ -184,7 +200,7 @@ public open class Kotlin2JsCompile(): AbstractKotlinCompile() {
         }
 
         args.freeArgs = sources.map { it.getAbsolutePath() }
-        args.outputFile = if (StringUtils.isEmpty(kotlinOptions.outputFile)) { "${kotlinDestinationDir}/app.js" } else { kotlinOptions.outputFile }
+        args.outputFile = outputFile()
         args.outputPrefix = kotlinOptions.outputPrefix
         args.outputPostfix = kotlinOptions.outputPostfix
         args.libraryFiles = kotlinOptions.libraryFiles

@@ -44,6 +44,8 @@ import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 import org.gradle.api.tasks.Copy
 import org.gradle.api.file.SourceDirectorySet
 import kotlin.properties.Delegates
+import org.gradle.api.tasks.Delete
+import org.codehaus.groovy.runtime.MethodClosure
 
 val DEFAULT_ANNOTATIONS = "org.jebrains.kotlin.gradle.defaultAnnotations"
 
@@ -196,6 +198,9 @@ open class Kotlin2JsPlugin [Inject] (scriptHandler: ScriptHandler): AbstractKotl
                 override val taskDescription = "Compiles the kotlin sources in $sourceSet to JavaScript."
                 override val compileTaskNameSuffix = "kotlin2Js"
                 override val compilerClass = javaClass<Kotlin2JsCompile>()
+
+                val copyKotlinJsTaskName = sourceSet.getTaskName("copy", "kotlinJs")
+
                 override fun doTargetSpecificProcessing() {
                     val version = project.getProperties()["kotlin.gradle.plugin.version"] as String
                     val jsLibraryJar = GradleUtils(scriptHandler).resolveDependencies("org.jetbrains.kotlin:kotlin-js-library:$version").map{it.getAbsolutePath()}[0]
@@ -204,19 +209,30 @@ open class Kotlin2JsPlugin [Inject] (scriptHandler: ScriptHandler): AbstractKotl
                     val kotlinOutputDir = File(project.getBuildDir(), "kotlin2js/${sourceSetName}")
                     kotlinTask.kotlinDestinationDir = kotlinOutputDir
 
-                    val copyKotlinJsTaskName = createCopyKotlinJsTask(jsLibraryJar, kotlinOutputDir)
+                    createCopyKotlinJsTask(jsLibraryJar, kotlinOutputDir)
 
                     (project.getTasks().findByName(sourceSet.getCompileJavaTaskName()) as AbstractCompile?)
                             ?.dependsOn(kotlinTaskName)?.dependsOn(copyKotlinJsTaskName)
+
+                    project.getTasks().findByName("clean")
+                            ?.dependsOn("clean" + kotlinTaskName.capitalize())
+                            ?.dependsOn("clean" + copyKotlinJsTaskName.capitalize())
                 }
 
-                private fun createCopyKotlinJsTask(jsLibraryJar: String, kotlinOutputDir: File): String? {
-                    val copyKotlinJsTaskName = sourceSet.getTaskName("copy", "kotlinJs")
+                private fun kotlinJsTargetPath(): String {
+                    val copyTask = project.getTasks().getByName(copyKotlinJsTaskName) as Copy
+                    return "${copyTask.getDestinationDir()}/kotlin.js"
+                }
+
+                private fun createCopyKotlinJsTask(jsLibraryJar: String, kotlinOutputDir: File) {
                     val copyKotlinJsTask = project.getTasks().create(copyKotlinJsTaskName, javaClass<Copy>())
                     copyKotlinJsTask.from(project.zipTree(jsLibraryJar))
                     copyKotlinJsTask.into(kotlinOutputDir)
                     copyKotlinJsTask.include("kotlin.js")
-                    return copyKotlinJsTaskName
+
+                    val cleanTaskName = "clean" + copyKotlinJsTaskName.capitalize()
+                    val cleanTask = project.getTasks().create(cleanTaskName, javaClass<Delete>())
+                    cleanTask.delete(MethodClosure(this, "kotlinJsTargetPath"))
                 }
             }
 }

@@ -9,6 +9,7 @@ import org.junit.After
 import kotlin.test.assertTrue
 import kotlin.test.assertEquals
 import kotlin.test.fail
+import kotlin.test.assertFalse
 
 open class BaseGradleIT(resourcesRoot: String = "src/test/resources") {
 
@@ -57,6 +58,11 @@ open class BaseGradleIT(resourcesRoot: String = "src/test/resources") {
 
     fun CompiledProject.assertFileExists(path: String = ""): CompiledProject {
         assertTrue(File(File(workingDir, project.projectName), path).exists(), "The file [$path] does not exist.")
+        return this
+    }
+
+    fun CompiledProject.assertNoSuchFile(path: String = ""): CompiledProject {
+        assertFalse(File(File(workingDir, project.projectName), path).exists(), "The file [$path] not exists.")
         return this
     }
 
