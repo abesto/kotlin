@@ -51,9 +51,7 @@ import org.gradle.api.DefaultTask
 abstract class AbstractKotlinCompile: AbstractCompile() {
     val srcDirsSources = HashSet<SourceDirectorySet>()
 
-    public var kotlinDestinationDir : File?
-        get() = getDestinationDir()
-        set(f: File?) = setDestinationDir(f)
+    public var kotlinDestinationDir : File? = getDestinationDir()
 
     private val logger = Logging.getLogger(this.javaClass)
     override fun getLogger() = logger
