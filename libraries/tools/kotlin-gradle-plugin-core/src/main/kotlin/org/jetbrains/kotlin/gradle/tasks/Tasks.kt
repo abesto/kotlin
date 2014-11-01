@@ -168,11 +168,11 @@ public open class Kotlin2JsCompile(): AbstractKotlinCompile() {
     val compiler = K2JSCompiler()
     public var kotlinOptions: K2JSCompilerArguments = K2JSCompilerArguments()
 
-    fun addLibraryFiles(vararg fs: String) {
+    public fun addLibraryFiles(vararg fs: String): Unit {
         kotlinOptions.libraryFiles = (kotlinOptions.libraryFiles + fs).copyToArray()
     }
 
-    fun addLibraryFiles(vararg fs: File) {
+    public fun addLibraryFiles(vararg fs: File): Unit {
         val strs = fs.map{it.getPath()}.copyToArray()
         addLibraryFiles(*strs)
     }
