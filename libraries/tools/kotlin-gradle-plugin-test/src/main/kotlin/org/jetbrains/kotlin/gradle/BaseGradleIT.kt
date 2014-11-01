@@ -62,7 +62,7 @@ open class BaseGradleIT(resourcesRoot: String = "src/test/resources") {
     }
 
     fun CompiledProject.assertNoSuchFile(path: String = ""): CompiledProject {
-        assertFalse(File(File(workingDir, project.projectName), path).exists(), "The file [$path] not exists.")
+        assertFalse(File(File(workingDir, project.projectName), path).exists(), "The file [$path] exists.")
         return this
     }
 
