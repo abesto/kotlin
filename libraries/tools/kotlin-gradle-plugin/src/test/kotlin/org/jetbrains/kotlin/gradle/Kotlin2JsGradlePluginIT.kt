@@ -41,8 +41,11 @@ class Kotlin2JsGradlePluginIT: BaseGradleIT() {
                            ":mainProject:cleanCopyKotlinSourcesForSourceMap\n")
             assertNoSuchFile("mainProject/web/js/app.js")
             assertNoSuchFile("mainProject/web/js/lib/kotlin.js")
-            assertFileExists("mainProject/web/js/lib")  // Test that we don't accidentally remove the containing directory
-                                                        // This would fail if we used the default clean task of the copy task
+
+            // Test that we don't accidentally remove the containing directory
+            // This would fail if we used the default clean task of the copy task
+            assertFileExists("mainProject/web/js/lib")
+
             assertNoSuchFile("main/project/web/js/app.js.map")
             assertNoSuchFile("main/project/web/js/example/main.kt")
         }
