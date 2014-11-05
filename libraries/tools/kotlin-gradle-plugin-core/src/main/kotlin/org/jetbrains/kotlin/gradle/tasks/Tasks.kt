@@ -187,11 +187,11 @@ public open class KotlinCompile(): AbstractKotlinCompile<K2JVMCompilerArguments>
 public open class Kotlin2JsCompile(): AbstractKotlinCompile<K2JSCompilerArguments>(javaClass()) {
     override protected val compiler = K2JSCompiler()
 
-    public fun addLibraryFiles(vararg fs: String): Unit {
+    public fun addLibraryFiles(vararg fs: String) {
         kotlinOptions.libraryFiles = (kotlinOptions.libraryFiles + fs).copyToArray()
     }
 
-    public fun addLibraryFiles(vararg fs: File): Unit {
+    public fun addLibraryFiles(vararg fs: File) {
         val strs = fs.map{it.getPath()}.copyToArray()
         addLibraryFiles(*strs)
     }
