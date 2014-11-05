@@ -54,14 +54,13 @@ val DEFAULT_ANNOTATIONS = "org.jebrains.kotlin.gradle.defaultAnnotations"
 
 abstract class KotlinSourceSetProcessor<T: AbstractCompile>(val project: ProjectInternal,
                                                             val javaBasePlugin: JavaBasePlugin,
-                                                            val sourceSet: SourceSet) {
-    val logger = Logging.getLogger(this.javaClass)
-
-    abstract protected val pluginName: String
-    abstract protected val compileTaskNameSuffix: String
-    abstract protected val taskDescription: String
-    abstract protected val compilerClass: Class<T>
+                                                            val sourceSet: SourceSet,
+                                                            val pluginName: String,
+                                                            val compileTaskNameSuffix: String,
+                                                            val taskDescription: String,
+                                                            val compilerClass: Class<T>) {
     abstract protected fun doTargetSpecificProcessing()
+    val logger = Logging.getLogger(this.javaClass)
 
     protected val sourceSetName: String = sourceSet.getName()
     protected val sourceRootDir: String = "src/${sourceSetName}/kotlin"
@@ -170,15 +169,17 @@ abstract class AbstractKotlinPlugin [Inject] (val scriptHandler: ScriptHandler):
 }
 
 
-open class KotlinPlugin [Inject] (scriptHandler: ScriptHandler): AbstractKotlinPlugin(scriptHandler) {
+open class KotlinPlugin [Inject] (scriptHandler: ScriptHandler):AbstractKotlinPlugin(scriptHandler) {
     override fun buildSourceSetProcessor(project: ProjectInternal, javaBasePlugin: JavaBasePlugin, sourceSet: SourceSet): KotlinSourceSetProcessor<KotlinCompile> =
-        object : KotlinSourceSetProcessor<KotlinCompile>(project, javaBasePlugin, sourceSet) {
-            override val pluginName = "kotlin"
-            override val compileTaskNameSuffix= "kotlin"
-            override val taskDescription = "Compiles the $sourceSet.kotlin."
-            override val compilerClass = javaClass<KotlinCompile>()
-            override fun doTargetSpecificProcessing() {
 
+        object : KotlinSourceSetProcessor<KotlinCompile>(
+                project, javaBasePlugin, sourceSet,
+                pluginName = "kotlin",
+                compileTaskNameSuffix = "kotlin",
+                taskDescription = "Compiles the $sourceSet.kotlin.",
+                compilerClass = javaClass()) {
+
+            override fun doTargetSpecificProcessing() {
                 // store kotlin classes in separate directory. They will serve as class-path to java compiler
                 val kotlinOutputDir = File(project.getBuildDir(), "kotlin-classes/${sourceSetName}")
                 kotlinTask.kotlinDestinationDir = kotlinOutputDir
@@ -197,11 +198,12 @@ open class KotlinPlugin [Inject] (scriptHandler: ScriptHandler): AbstractKotlinP
 
 open class Kotlin2JsPlugin [Inject] (scriptHandler: ScriptHandler): AbstractKotlinPlugin(scriptHandler) {
     override fun buildSourceSetProcessor(project: ProjectInternal, javaBasePlugin: JavaBasePlugin, sourceSet: SourceSet): KotlinSourceSetProcessor<Kotlin2JsCompile> =
-            object : KotlinSourceSetProcessor<Kotlin2JsCompile>(project, javaBasePlugin, sourceSet) {
-                override val pluginName = "kotlin2js"
-                override val taskDescription = "Compiles the kotlin sources in $sourceSet to JavaScript."
-                override val compileTaskNameSuffix = "kotlin2Js"
-                override val compilerClass = javaClass<Kotlin2JsCompile>()
+            object : KotlinSourceSetProcessor<Kotlin2JsCompile>(
+                    project, javaBasePlugin, sourceSet,
+                    pluginName = "kotlin2js",
+                    taskDescription = "Compiles the kotlin sources in $sourceSet to JavaScript.",
+                    compileTaskNameSuffix = "kotlin2Js",
+                    compilerClass = javaClass<Kotlin2JsCompile>()) {
 
                 val copyKotlinJsTaskName = sourceSet.getTaskName("copy", "kotlinJs")
                 val clean = project.getTasks().findByName("clean")
