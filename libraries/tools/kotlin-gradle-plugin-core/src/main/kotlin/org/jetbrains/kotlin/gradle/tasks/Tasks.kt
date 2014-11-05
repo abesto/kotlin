@@ -46,10 +46,14 @@ import org.gradle.api.internal.project.ProjectInternal
 import groovy.lang.Closure
 import org.codehaus.groovy.runtime.MethodClosure
 import org.gradle.api.DefaultTask
+import org.jetbrains.jet.cli.common.arguments.CommonCompilerArguments
+import org.jetbrains.jet.cli.common.CLICompiler
 
 
-abstract class AbstractKotlinCompile: AbstractCompile() {
+abstract class AbstractKotlinCompile<T : CommonCompilerArguments>(val argsCls: Class<T>): AbstractCompile() {
     val srcDirsSources = HashSet<SourceDirectorySet>()
+    abstract protected val compiler: CLICompiler<T>
+    public var kotlinOptions: T = argsCls.newInstance()
 
     public var kotlinDestinationDir : File? = getDestinationDir()
 
@@ -88,62 +92,39 @@ abstract class AbstractKotlinCompile: AbstractCompile() {
         return null
     }
 
-
-}
-
-public open class KotlinCompile(): AbstractKotlinCompile() {
-    val compiler = K2JVMCompiler()
-    public var kotlinOptions: K2JVMCompilerArguments = K2JVMCompilerArguments();
-
     [TaskAction]
     override fun compile() {
-
-        getLogger().debug("Starting Kotlin compilation task")
-
-        val args = K2JVMCompilerArguments()
-
-        val javaSrcRoots = HashSet<File>()
-        val sources = ArrayList<File>()
-
-        // collect source directory roots for all java files to allow cross compilation
-        for (file in getSource()) {
-            if (FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("java")) {
-                val javaRoot = findSrcDirRoot(file)
-                if (javaRoot != null) {
-                    javaSrcRoots.add(javaRoot)
-                }
-            } else {
-                sources.add(file)
-            }
-        }
-
+        getLogger().debug("Starting ${javaClass} task")
+        val args = argsCls.newInstance()
+        val sources = getKotlinSources()
         if (sources.empty) {
             getLogger().warn("No Kotlin files found, skipping Kotlin compiler task")
             return
         }
 
+        populateTargetSpecificArgs(args, sources)
+        populateCommonArgs(args, sources)
+        callCompiler(args)
+        afterCompileHook(args)
+    }
+
+    protected fun isJava(it: File): Boolean = FilenameUtils.getExtension(it.getName()).equalsIgnoreCase("java")
+
+    private fun getKotlinSources(): ArrayList<File> = getSource()
+            .filterNot { isJava(it) }
+            .toArrayList()
+
+    protected fun populateCommonArgs(args: T, sources: ArrayList<File>) {
         args.freeArgs = sources.map { it.getAbsolutePath() }
-
-        if (StringUtils.isEmpty(kotlinOptions.classpath)) {
-            val existingClasspathEntries =  getClasspath().filter(KSpec<File?>({ it != null && it.exists() }))
-            val effectiveClassPath = (javaSrcRoots + existingClasspathEntries).makeString(File.pathSeparator)
-            args.classpath = effectiveClassPath
-        }
-
-        args.destination = if (StringUtils.isEmpty(kotlinOptions.destination)) { kotlinDestinationDir?.getPath() } else { kotlinOptions.destination }
-
-        val embeddedAnnotations = getAnnotations(getProject(), getLogger())
-        val userAnnotations = (kotlinOptions.annotations ?: "").split(File.pathSeparatorChar).toList()
-        val allAnnotations = if (kotlinOptions.noJdkAnnotations) userAnnotations else userAnnotations.plus(embeddedAnnotations.map {it.getPath()})
-        args.annotations = allAnnotations.makeString(File.pathSeparator)
-
-        args.noStdlib = true
-        args.noJdkAnnotations = true
+        args.suppressWarnings = kotlinOptions.suppressWarnings
+        args.verbose = kotlinOptions.verbose
+        args.version = kotlinOptions.version
         args.noInline = kotlinOptions.noInline
-        args.noOptimize = kotlinOptions.noOptimize
-        args.noCallAssertions = kotlinOptions.noCallAssertions
-        args.noParamAssertions = kotlinOptions.noParamAssertions
+    }
 
+    abstract protected fun populateTargetSpecificArgs(args: T, sources: ArrayList<File>)
+
+    private fun callCompiler(args: T) {
         val messageCollector = GradleMessageCollector(getLogger())
         getLogger().debug("Calling compiler")
         val exitCode = compiler.exec(messageCollector, Services.EMPTY, args)
@@ -152,7 +133,48 @@ public open class KotlinCompile(): AbstractKotlinCompile() {
             ExitCode.COMPILATION_ERROR -> throw GradleException("Compilation error. See log for more details")
             ExitCode.INTERNAL_ERROR -> throw GradleException("Internal compiler error. See log for more details")
         }
+    }
 
+    open protected fun afterCompileHook(args: T) {}
+}
+
+public open class KotlinCompile(): AbstractKotlinCompile<K2JVMCompilerArguments>(javaClass()) {
+    override protected val compiler = K2JVMCompiler()
+
+    override protected fun populateTargetSpecificArgs(args: K2JVMCompilerArguments, sources: ArrayList<File>) {
+        if (StringUtils.isEmpty(kotlinOptions.classpath)) {
+            val existingClasspathEntries = getClasspath().filter(KSpec<File?>({ it != null && it.exists() }))
+            val effectiveClassPath = (getJavaSourceRoots() + existingClasspathEntries).makeString(File.pathSeparator)
+            args.classpath = effectiveClassPath
+        }
+
+        args.destination = if (StringUtils.isEmpty(kotlinOptions.destination)) {
+            kotlinDestinationDir?.getPath()
+        } else {
+            kotlinOptions.destination
+        }
+
+        val embeddedAnnotations = getAnnotations(getProject(), getLogger())
+        val userAnnotations = (kotlinOptions.annotations ?: "").split(File.pathSeparatorChar).toList()
+        val allAnnotations = if (kotlinOptions.noJdkAnnotations) userAnnotations else userAnnotations.plus(embeddedAnnotations.map { it.getPath() })
+        args.annotations = allAnnotations.makeString(File.pathSeparator)
+
+        args.noStdlib = true
+        args.noJdkAnnotations = true
+        args.noInline = kotlinOptions.noInline
+        args.noOptimize = kotlinOptions.noOptimize
+        args.noCallAssertions = kotlinOptions.noCallAssertions
+        args.noParamAssertions = kotlinOptions.noParamAssertions
+    }
+
+    private fun getJavaSourceRoots(): HashSet<File> = getSource()
+            .filter { isJava(it) }
+            .map { findSrcDirRoot(it) }
+            .filter { it != null }
+            .map { it!! }
+            .toHashSet()
+
+    override protected fun afterCompileHook(args: K2JVMCompilerArguments) {
         getLogger().debug("Copying resulting files to classes")
         // Copy kotlin classes to all classes directory
         val outputDirFile = File(args.destination!!)
@@ -162,9 +184,8 @@ public open class KotlinCompile(): AbstractKotlinCompile() {
     }
 }
 
-public open class Kotlin2JsCompile(): AbstractKotlinCompile() {
-    val compiler = K2JSCompiler()
-    public var kotlinOptions: K2JSCompilerArguments = K2JSCompilerArguments()
+public open class Kotlin2JsCompile(): AbstractKotlinCompile<K2JSCompilerArguments>(javaClass()) {
+    override protected val compiler = K2JSCompiler()
 
     public fun addLibraryFiles(vararg fs: String): Unit {
         kotlinOptions.libraryFiles = (kotlinOptions.libraryFiles + fs).copyToArray()
@@ -189,47 +210,19 @@ public open class Kotlin2JsCompile(): AbstractKotlinCompile() {
         getOutputs().file(MethodClosure(this, "outputFile"))
     }
 
-    [TaskAction]
-    override fun compile() {
-        getLogger().debug("Starting Kotlin to JavaScript compilation task")
-
-        val args = K2JSCompilerArguments()
-
-        val sources = getSource().filterNot{FilenameUtils.getExtension(it.getName()).equalsIgnoreCase("java")}
-
-        if (sources.empty) {
-            getLogger().warn("No Kotlin files found, skipping Kotlin compiler task")
-            return
-        }
-
-        args.freeArgs = sources.map { it.getAbsolutePath() }
+    override protected fun populateTargetSpecificArgs(args: K2JSCompilerArguments, sources: ArrayList<File>) {
         args.outputFile = outputFile()
         args.outputPrefix = kotlinOptions.outputPrefix
         args.outputPostfix = kotlinOptions.outputPostfix
         args.libraryFiles = kotlinOptions.libraryFiles
-        args.noInline = kotlinOptions.noInline
-        args.sourceMap = kotlinOptions.sourceMap
-        args.suppressWarnings = kotlinOptions.suppressWarnings
         args.target = kotlinOptions.target
-
-        // TODO: verbose, version flags are ignored or the message collector drops those lines
-        args.verbose = kotlinOptions.verbose
-        args.version = kotlinOptions.version
+        args.sourceMap = kotlinOptions.sourceMap
 
         val outputDir = File(args.outputFile).directory
         if (!outputDir.exists()) {
             if (!outputDir.mkdirs()) {
                throw GradleException("Failed to create output directory ${outputDir} or one of its ancestors")
             }
-        }
-
-        val messageCollector = GradleMessageCollector(getLogger())
-        getLogger().debug("Calling compiler")
-        val exitCode = compiler.exec(messageCollector, Services.EMPTY, args)
-
-        when (exitCode) {
-            ExitCode.COMPILATION_ERROR -> throw GradleException("Compilation error. See log for more details")
-            ExitCode.INTERNAL_ERROR -> throw GradleException("Internal compiler error. See log for more details")
         }
     }
 }
