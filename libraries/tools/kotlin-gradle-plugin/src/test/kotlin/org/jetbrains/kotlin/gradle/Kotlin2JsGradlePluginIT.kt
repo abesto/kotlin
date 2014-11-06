@@ -23,7 +23,11 @@ class Kotlin2JsGradlePluginIT : BaseGradleIT() {
             ).forEach { assertFileExists(it) }
 
             assertFileContains("libraryProject/build/kotlin2js/main/app.js", "Counter: Kotlin.createClass")
-            // Should be updated to `new _.example.library.Counter` once namespaced imports from libraryFiles are implemented
+
+            // TODO Should be updated to `new _.example.library.Counter` once namespaced imports from libraryFiles are implemented
+            // TODO It would be better to test these by behavior instead of implementation, for example by loading the files
+            //      into Rhino and running assertions on that. See https://github.com/abesto/kotlin/commit/120ec1bda3d95630189d4d33d0b2afb4253b5186
+            //      for the (original) discussion on this.
             assertFileContains("mainProject/web/js/app.js", "var counter = new Counter(counterText);")
             assertFileContains("mainProject/web/js/app.js.map", "sources\":[\"example/main.kt\"]")
         }
