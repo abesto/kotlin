@@ -50,10 +50,11 @@ import org.jetbrains.jet.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.jet.cli.common.CLICompiler
 
 
-abstract class AbstractKotlinCompile<T : CommonCompilerArguments>(val argsCls: Class<T>): AbstractCompile() {
+abstract class AbstractKotlinCompile<T : CommonCompilerArguments>(): AbstractCompile() {
     val srcDirsSources = HashSet<SourceDirectorySet>()
     abstract protected val compiler: CLICompiler<T>
-    public var kotlinOptions: T = argsCls.newInstance()
+    abstract protected fun createBlankArgs(): T
+    public var kotlinOptions: T = createBlankArgs()
 
     public var kotlinDestinationDir : File? = getDestinationDir()
 
@@ -95,7 +96,7 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments>(val argsCls: C
     [TaskAction]
     override fun compile() {
         getLogger().debug("Starting ${javaClass} task")
-        val args = argsCls.newInstance()
+        val args = createBlankArgs()
         val sources = getKotlinSources()
         if (sources.empty) {
             getLogger().warn("No Kotlin files found, skipping Kotlin compiler task")
@@ -138,8 +139,10 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments>(val argsCls: C
     open protected fun afterCompileHook(args: T) {}
 }
 
-public open class KotlinCompile(): AbstractKotlinCompile<K2JVMCompilerArguments>(javaClass()) {
+public open class KotlinCompile(): AbstractKotlinCompile<K2JVMCompilerArguments>() {
     override protected val compiler = K2JVMCompiler()
+
+    override fun createBlankArgs(): K2JVMCompilerArguments = K2JVMCompilerArguments()
 
     override protected fun populateTargetSpecificArgs(args: K2JVMCompilerArguments, sources: ArrayList<File>) {
         if (StringUtils.isEmpty(kotlinOptions.classpath)) {
@@ -184,8 +187,10 @@ public open class KotlinCompile(): AbstractKotlinCompile<K2JVMCompilerArguments>
     }
 }
 
-public open class Kotlin2JsCompile(): AbstractKotlinCompile<K2JSCompilerArguments>(javaClass()) {
+public open class Kotlin2JsCompile(): AbstractKotlinCompile<K2JSCompilerArguments>() {
     override protected val compiler = K2JSCompiler()
+
+    override fun createBlankArgs(): K2JSCompilerArguments = K2JSCompilerArguments()
 
     public fun addLibraryFiles(vararg fs: String) {
         kotlinOptions.libraryFiles = (kotlinOptions.libraryFiles + fs).copyToArray()
