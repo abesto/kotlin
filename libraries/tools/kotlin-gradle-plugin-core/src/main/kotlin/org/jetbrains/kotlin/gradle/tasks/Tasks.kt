@@ -140,11 +140,11 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments>(): AbstractCom
 }
 
 public open class KotlinCompile(): AbstractKotlinCompile<K2JVMCompilerArguments>() {
-    override protected val compiler = K2JVMCompiler()
+    override val compiler = K2JVMCompiler()
 
     override fun createBlankArgs(): K2JVMCompilerArguments = K2JVMCompilerArguments()
 
-    override protected fun populateTargetSpecificArgs(args: K2JVMCompilerArguments, sources: ArrayList<File>) {
+    override fun populateTargetSpecificArgs(args: K2JVMCompilerArguments, sources: ArrayList<File>) {
         if (StringUtils.isEmpty(kotlinOptions.classpath)) {
             val existingClasspathEntries = getClasspath().filter(KSpec<File?>({ it != null && it.exists() }))
             val effectiveClassPath = (getJavaSourceRoots() + existingClasspathEntries).makeString(File.pathSeparator)
@@ -177,7 +177,7 @@ public open class KotlinCompile(): AbstractKotlinCompile<K2JVMCompilerArguments>
             .map { it!! }
             .toHashSet()
 
-    override protected fun afterCompileHook(args: K2JVMCompilerArguments) {
+    override fun afterCompileHook(args: K2JVMCompilerArguments) {
         getLogger().debug("Copying resulting files to classes")
         // Copy kotlin classes to all classes directory
         val outputDirFile = File(args.destination!!)
@@ -188,7 +188,7 @@ public open class KotlinCompile(): AbstractKotlinCompile<K2JVMCompilerArguments>
 }
 
 public open class Kotlin2JsCompile(): AbstractKotlinCompile<K2JSCompilerArguments>() {
-    override protected val compiler = K2JSCompiler()
+    override val compiler = K2JSCompiler()
 
     override fun createBlankArgs(): K2JSCompilerArguments = K2JSCompilerArguments()
 
@@ -215,7 +215,7 @@ public open class Kotlin2JsCompile(): AbstractKotlinCompile<K2JSCompilerArgument
         getOutputs().file(MethodClosure(this, "outputFile"))
     }
 
-    override protected fun populateTargetSpecificArgs(args: K2JSCompilerArguments, sources: ArrayList<File>) {
+    override fun populateTargetSpecificArgs(args: K2JSCompilerArguments, sources: ArrayList<File>) {
         args.outputFile = outputFile()
         args.outputPrefix = kotlinOptions.outputPrefix
         args.outputPostfix = kotlinOptions.outputPostfix
